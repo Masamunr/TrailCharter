@@ -20,8 +20,14 @@
 - Location stays on-device unless explicitly shared.
 - Transparency by Design.
 - Live location sharing agreed in principle.
-- GitHub to become authoritative source of truth.
-- No implementation until vision and architecture are sufficiently understood.
+- GitHub is the authoritative source of truth.
+- Android implementation is now open as a controlled, iterative foundation-development phase alongside continued product and architecture design.
+- Foundation implementation must not prematurely lock unresolved EXPLORE decisions into the product or architecture.
+- Early implementation should prioritise the Android project foundation, privacy/offline principles, local-first structure, branding/theming foundations, CI/build reliability and replaceable architectural seams before complex mapping/routing features.
+
+## SUPERSEDED
+- Previous AGREE direction: "No implementation until vision and architecture are sufficiently understood."
+- Superseded on 2026-08-27 by the decision to allow controlled foundation implementation while design and architecture continue.
 
 ## EXPLORE
 - Adventure IA
