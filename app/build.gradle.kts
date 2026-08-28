@@ -1,4 +1,4 @@
-import java.util.Base64
+import java.security.MessageDigest
 
 plugins {
     alias(libs.plugins.android.application)
@@ -6,16 +6,36 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val launcherArtworkSource = layout.projectDirectory.file("branding/ic_launcher.webp.b64")
+val launcherArtworkSource = layout.projectDirectory.file("branding/ic_launcher.webp")
 val generatedLauncherResDir = layout.buildDirectory.dir("generated/trailcharterLauncher/res")
+val expectedLauncherArtworkSha256 = "a7e1f774ea70f820f299b373e7d24d7bf397cd119e8196335d0001a48b7d8f1c"
 
 val prepareLauncherIcon by tasks.registering {
     inputs.file(launcherArtworkSource)
     outputs.dir(generatedLauncherResDir)
 
     doLast {
-        val encoded = launcherArtworkSource.asFile.readText().trim()
-        val artwork = Base64.getDecoder().decode(encoded)
+        val artwork = launcherArtworkSource.asFile.readBytes()
+        check(artwork.size >= 12) { "Launcher artwork is too small to be a valid WebP file" }
+        check(String(artwork, 0, 4, Charsets.US_ASCII) == "RIFF") { "Launcher artwork is not a RIFF file" }
+        check(String(artwork, 8, 4, Charsets.US_ASCII) == "WEBP") { "Launcher artwork is not a WebP file" }
+
+        val declaredRiffSize =
+            (artwork[4].toInt() and 0xff) or
+                ((artwork[5].toInt() and 0xff) shl 8) or
+                ((artwork[6].toInt() and 0xff) shl 16) or
+                ((artwork[7].toInt() and 0xff) shl 24)
+        check(declaredRiffSize + 8 == artwork.size) {
+            "Launcher artwork is truncated or has unexpected trailing bytes"
+        }
+
+        val actualSha256 = MessageDigest.getInstance("SHA-256")
+            .digest(artwork)
+            .joinToString("") { "%02x".format(it.toInt() and 0xff) }
+        check(actualSha256 == expectedLauncherArtworkSha256) {
+            "Launcher artwork bytes do not match the approved source"
+        }
+
         val mipmapDir = generatedLauncherResDir.get().dir("mipmap-xxxhdpi").asFile
         mipmapDir.mkdirs()
         mipmapDir.resolve("ic_launcher.webp").writeBytes(artwork)

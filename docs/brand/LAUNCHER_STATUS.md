@@ -1,3 +1,5 @@
 # TrailCharter launcher status
 
-The approved no-shield TrailCharter landscape artwork is now wired into the Android launcher build on the branding branch. Android adaptive masking is used for modern launchers; the same artwork is retained for legacy/round launcher resources. No new artwork has been generated for this integration.
+FINAL launcher identity: the approved no-shield mountains / trees / river / sun composition shown in the supplied TrailCharter launcher reference. Android may crop or scale that approved composition only as required for platform masks; it must not be redesigned.
+
+The branding branch now uses a binary WebP source derived directly from the supplied approved reference rather than a Base64 text representation. The build validates the file structure and approved SHA-256 before generating regular, round and adaptive launcher resources. PR #2 remains unmerged until Android CI is green and a real APK artifact exists.
