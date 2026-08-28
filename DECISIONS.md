@@ -24,6 +24,12 @@
 - **Database generation/migrations:** use KSP for generated database code; maintain explicit versioned Room migrations from the beginning; destructive production migrations are not permitted.
 - **Local authority:** personal/core Adventure data is stored locally as the authoritative copy and core functionality must not depend on a cloud/backend service.
 - **Secrets:** credentials or cryptographic key material, if later required, use Android Keystore-backed handling rather than ordinary preferences/database fields.
+- **Offline-by-default networking:** TrailCharter's default operational state is offline. The initial application should not declare `INTERNET` permission. When network-dependent features are later introduced, network access must remain gated behind a defined TrailCharter network layer and user action/explicit enablement; no background connection merely because the app is open.
+- **Network privacy:** no advertising, analytics, telemetry or third-party tracking SDKs; no silent uploads. When networking is introduced, cleartext HTTP is disabled and ordinary network traffic uses secure transport.
+- **Local-only backup:** TrailCharter does not provide or depend on a TrailCharter cloud backup service and automatic cloud backup of personal/core data is disabled/excluded as far as the Android platform permits.
+- **User-controlled backup/export:** backup files are created locally and explicitly by the user. Through Android's system document picker/Storage Access Framework, the user may save or copy that local backup to any destination/provider they already control, including personal services such as Proton Drive or OneDrive where exposed by Android. TrailCharter does not require a TrailCharter account or direct cloud integration for this.
+- **Permissions:** least privilege; request permissions only in context when the user invokes a feature that needs them; no startup permission barrage; features degrade gracefully when permissions are denied. Prefer Android Photo Picker and Storage Access Framework over broad media/storage permissions. Background location requires a separate future decision.
+- **Privacy Status:** TrailCharter will provide clear in-app status information for location tracking, including an unambiguous `On` / `Off` state. More detailed privacy-status presentation can evolve with later features.
 - TrailCharter continues the same project history previously discussed under Altrove and Adventure.
 - Android-first, privacy-first, offline-first where practical, open-source intended.
 - OpenStreetMap foundation.
@@ -46,6 +52,7 @@
 - primary navigation model
 - optional Android system/dynamic colour mode
 - enhanced application-level encryption/threat model beyond normal Android app sandbox/device encryption
+- exact TrailCharter backup archive format and optional user-controlled backup encryption
 - Organic Maps technical relationship
 - offline architecture
 - live-sharing architecture
