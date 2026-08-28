@@ -211,7 +211,7 @@ private fun OfflineEryriPass3Map(packages: Pass3OfflineMapPackages) {
 }
 
 @Composable
-private fun Pass3CameraControlPanel(
+private fun androidx.compose.foundation.layout.BoxScope.Pass3CameraControlPanel(
     map: MapLibreMap,
     mode: Pass3CameraControl,
     liveTilt: Float,
