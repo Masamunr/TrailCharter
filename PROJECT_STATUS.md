@@ -1,10 +1,15 @@
-# Altrove Project Status
+# TrailCharter Project Status
 
 ## Phase
 **Product Design + Foundation Development**
 
+## Product name
+**TrailCharter — AGREE**
+
+The name is agreed for current development and branding work but is not yet FINAL. The existing repository path `Masamunr/altrove` is retained for continuity until a later deliberate rename decision.
+
 ## Implementation
-Android implementation is now authorised as a controlled foundation phase.
+Android implementation is authorised as a controlled foundation phase.
 
 No production Android application has been implemented yet.
 
@@ -13,14 +18,16 @@ No production Android application has been implemented yet.
 - Constitution established.
 - Vision established.
 - Decisions classified into EXPLORE / AGREE / FINAL.
+- TrailCharter selected as the current agreed product name following deeper collision/clearance checks.
+- Altrove as a product name is rejected/superseded because of a directly adjacent active travel-planning product using that name.
 - Seasonal icon system locked as FINAL.
 - GitHub repository exists at `Masamunr/altrove`.
 - GitHub connector access was successfully restored and write-tested on 2026-08-27.
-- The portable baseline documentation has been reconciled into the repository; no newer repository project material existed beyond the original README and `.gitignore`.
-- GitHub is now the authoritative source of truth for Altrove project documentation.
+- The portable baseline documentation has been reconciled into the repository.
+- GitHub is the authoritative source of truth for project documentation.
 - Brand specification is preserved at `docs/brand/BRAND_IDENTITY.md`.
-- Asset gap: the supplied baseline ZIP references `docs/brand/altrove_seasonal_icon_system_FINAL.jpg`, but the image binary was not actually included in that ZIP. The exact approved visual reference must still be preserved in the repository.
-- On 2026-08-27 the previous implementation gate was reopened: controlled Android foundation development may now proceed while product and architecture design continue.
+- Asset gap remains: the exact approved no-shield launcher-art reference binary still needs to be committed to the repository; its visual rules are preserved in the brand specification.
+- On 2026-08-27 the previous implementation gate was reopened: controlled Android foundation development may proceed while product and architecture design continue.
 
 ## Implementation guardrails
 - Do not prematurely hard-code unresolved EXPLORE decisions.
@@ -30,8 +37,8 @@ No production Android application has been implemented yet.
 - Treat mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
 
 ## Next priorities
-1. Preserve the exact FINAL launcher icon reference asset in GitHub.
-2. Define the Android foundation: package/application identity, SDK/toolchain, Compose structure, local persistence boundary, privacy/network rules and CI/build pipeline.
+1. Define the Android foundation: package/application identity, SDK/toolchain, Compose structure, local persistence boundary, privacy/network rules and CI/build pipeline.
+2. Preserve the exact FINAL launcher icon reference asset in GitHub.
 3. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
 4. Define the Adventure information model.
 5. Define the main UX/navigation model.
@@ -40,4 +47,4 @@ No production Android application has been implemented yet.
 ## Implementation gate
 **OPEN — AGREE**
 
-Altrove may now enter iterative foundation development alongside continued product and architecture design. Unresolved EXPLORE decisions remain open and must not be treated as settled merely because implementation has begun.
+TrailCharter may enter iterative foundation development alongside continued product and architecture design. Unresolved EXPLORE decisions remain open and must not be treated as settled merely because implementation has begun.
