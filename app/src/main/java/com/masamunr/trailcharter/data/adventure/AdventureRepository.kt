@@ -68,6 +68,15 @@ class AdventureRepository(
         )
     }
 
+    suspend fun setStageComplete(stage: StageEntity, complete: Boolean) {
+        dao.updateStage(
+            stage.copy(
+                isComplete = complete,
+                completedAtEpochMillis = if (complete) System.currentTimeMillis() else null,
+            ),
+        )
+    }
+
     suspend fun deleteStage(stage: StageEntity) {
         dao.deleteStage(stage)
     }

@@ -17,8 +17,8 @@ interface AdventureDao {
             a.summary,
             a.startDateEpochDay,
             a.endDateEpochDay,
-            (SELECT COUNT(*) FROM itinerary_items i WHERE i.adventureId = a.id) AS itineraryCount,
-            (SELECT COUNT(*) FROM itinerary_items i WHERE i.adventureId = a.id AND i.isComplete = 1) AS completedCount
+            (SELECT COUNT(*) FROM stages s WHERE s.adventureId = a.id) AS stageCount,
+            (SELECT COUNT(*) FROM stages s WHERE s.adventureId = a.id AND s.isComplete = 1) AS completedStageCount
         FROM adventures a
         ORDER BY
             CASE WHEN a.startDateEpochDay IS NULL THEN 1 ELSE 0 END,
@@ -51,6 +51,9 @@ interface AdventureDao {
 
     @Insert
     suspend fun insertStage(stage: StageEntity): Long
+
+    @Update
+    suspend fun updateStage(stage: StageEntity)
 
     @Delete
     suspend fun deleteStage(stage: StageEntity)

@@ -22,8 +22,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
@@ -36,11 +34,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -52,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import com.masamunr.trailcharter.data.adventure.AdventureEntity
 import com.masamunr.trailcharter.data.adventure.AdventureRepository
 import com.masamunr.trailcharter.data.adventure.AdventureSummaryRow
-import com.masamunr.trailcharter.data.adventure.ItineraryItemEntity
 import com.masamunr.trailcharter.data.adventure.StageEntity
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -223,20 +218,20 @@ private fun AdventureCard(
                 )
             }
 
-            if (adventure.itineraryCount > 0) {
-                val progress = adventure.completedCount.toFloat() / adventure.itineraryCount.toFloat()
+            if (adventure.stageCount > 0) {
+                val progress = adventure.completedStageCount.toFloat() / adventure.stageCount.toFloat()
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    text = "${adventure.completedCount} of ${adventure.itineraryCount} milestones complete",
+                    text = "${adventure.completedStageCount} of ${adventure.stageCount} stages complete",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
                 Text(
-                    text = "No milestones yet",
+                    text = "No stages yet",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -363,7 +358,6 @@ private fun AdventureEditorScreen(
 ) {
     val adventure by repository.observeAdventure(adventureId).collectAsState(initial = null)
     val stages by repository.observeStages(adventureId).collectAsState(initial = emptyList())
-    val itineraryItems by repository.observeItineraryItems(adventureId).collectAsState(initial = emptyList())
 
     val currentAdventure = adventure
     if (currentAdventure == null) {
@@ -377,7 +371,6 @@ private fun AdventureEditorScreen(
         repository = repository,
         adventure = currentAdventure,
         stages = stages,
-        itineraryItems = itineraryItems,
         onBack = onBack,
         onSaved = onSaved,
         onSavedAndNew = onSavedAndNew,
@@ -391,7 +384,6 @@ private fun AdventureEditorContent(
     repository: AdventureRepository,
     adventure: AdventureEntity,
     stages: List<StageEntity>,
-    itineraryItems: List<ItineraryItemEntity>,
     onBack: () -> Unit,
     onSaved: () -> Unit,
     onSavedAndNew: () -> Unit,
@@ -403,27 +395,17 @@ private fun AdventureEditorContent(
     var startDate by rememberSaveable(adventure.id) { mutableStateOf(adventure.startDateEpochDay) }
     var endDate by rememberSaveable(adventure.id) { mutableStateOf(adventure.endDateEpochDay) }
     var newStageTitle by rememberSaveable(adventure.id) { mutableStateOf("") }
-    var newItemTitle by rememberSaveable(adventure.id) { mutableStateOf("") }
-    var selectedStageId by rememberSaveable(adventure.id) { mutableStateOf<Long?>(null) }
-    var stageMenuExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by rememberSaveable(adventure.id) { mutableStateOf(false) }
 
     val dateOrderInvalid = startDate != null && endDate != null && requireNotNull(endDate) < requireNotNull(startDate)
     val canSave = title.isNotBlank() && !dateOrderInvalid
-    val stageNames = remember(stages) { stages.associate { it.id to it.title } }
-    val completeCount = itineraryItems.count { it.isComplete }
-
-    LaunchedEffect(stages, selectedStageId) {
-        if (selectedStageId != null && stages.none { it.id == selectedStageId }) {
-            selectedStageId = null
-        }
-    }
+    val completedStages = stages.count { it.isComplete }
 
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete adventure?") },
-            text = { Text("This removes the adventure, its stages and its milestones from this device.") },
+            text = { Text("This removes the adventure and its planning data from this device.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -532,30 +514,42 @@ private fun AdventureEditorContent(
             item { SectionDivider(title = "Stages") }
             item {
                 Text(
-                    text = "Stages are optional. Use them for days, legs or other useful sections.",
+                    text = "Plan the Adventure as stages, then tick each stage when you complete it.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-
-            items(stages, key = { "stage-${it.id}" }) { stage ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = stage.title,
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.bodyLarge,
+            item {
+                if (stages.isEmpty()) {
+                    Text(
+                        text = "Stages are optional. Use them for days, legs or other useful sections.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        val progress = completedStages.toFloat() / stages.size.toFloat()
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.fillMaxWidth(),
                         )
-                        TextButton(onClick = { scope.launch { repository.deleteStage(stage) } }) {
-                            Text("Remove")
-                        }
+                        Text(
+                            text = "$completedStages of ${stages.size} stages complete",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
+            }
+
+            items(stages, key = { "stage-${it.id}" }) { stage ->
+                StageRow(
+                    stage = stage,
+                    onCheckedChange = { checked ->
+                        scope.launch { repository.setStageComplete(stage, checked) }
+                    },
+                    onRemove = { scope.launch { repository.deleteStage(stage) } },
+                )
             }
 
             item {
@@ -583,112 +577,9 @@ private fun AdventureEditorContent(
                     }
                 }
             }
-
-            item { SectionDivider(title = "Progress") }
-            item {
-                if (itineraryItems.isEmpty()) {
-                    Text(
-                        text = "Add milestones or itinerary items, then tick them off as you achieve them.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        val progress = completeCount.toFloat() / itineraryItems.size.toFloat()
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        Text(
-                            text = "$completeCount of ${itineraryItems.size} complete",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-
-            items(itineraryItems, key = { "item-${it.id}" }) { item ->
-                ItineraryItemRow(
-                    item = item,
-                    stageName = item.stageId?.let(stageNames::get),
-                    onCheckedChange = { checked ->
-                        scope.launch { repository.setItineraryItemComplete(item, checked) }
-                    },
-                    onRemove = { scope.launch { repository.deleteItineraryItem(item) } },
-                )
-            }
-
-            item {
-                OutlinedTextField(
-                    value = newItemTitle,
-                    onValueChange = { newItemTitle = it },
-                    label = { Text("New milestone or itinerary item") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        OutlinedButton(
-                            onClick = { stageMenuExpanded = true },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(
-                                text = selectedStageId?.let(stageNames::get) ?: "Adventure-wide",
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = stageMenuExpanded,
-                            onDismissRequest = { stageMenuExpanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Adventure-wide") },
-                                onClick = {
-                                    selectedStageId = null
-                                    stageMenuExpanded = false
-                                },
-                            )
-                            stages.forEach { stage ->
-                                DropdownMenuItem(
-                                    text = { Text(stage.title) },
-                                    onClick = {
-                                        selectedStageId = stage.id
-                                        stageMenuExpanded = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            val itemTitle = newItemTitle
-                            val stageId = selectedStageId
-                            newItemTitle = ""
-                            scope.launch {
-                                repository.addItineraryItem(
-                                    adventureId = adventure.id,
-                                    title = itemTitle,
-                                    stageId = stageId,
-                                )
-                            }
-                        },
-                        enabled = newItemTitle.isNotBlank(),
-                    ) {
-                        Text("Add")
-                    }
-                }
-            }
             item {
                 Text(
-                    text = "Completion is manual in this first pass. Automatic location-based completion remains optional future behaviour.",
+                    text = "Stage completion is manual in this pass. Optional location-based completion remains a future setting.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -697,7 +588,7 @@ private fun AdventureEditorContent(
             item { SectionDivider(title = "Adventure actions") }
             item {
                 Text(
-                    text = "Stages and milestones are stored as you add them. Save adventure stores the current details and finishes this planning session.",
+                    text = "Stages and their completion state are stored as you work. Save adventure stores the current details and finishes this planning session.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -755,42 +646,33 @@ private fun AdventureEditorContent(
 }
 
 @Composable
-private fun ItineraryItemRow(
-    item: ItineraryItemEntity,
-    stageName: String?,
+private fun StageRow(
+    stage: StageEntity,
     onCheckedChange: (Boolean) -> Unit,
     onRemove: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(
-                    checked = item.isComplete,
-                    onCheckedChange = onCheckedChange,
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (item.isComplete) {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
-                    )
-                    stageName?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                TextButton(onClick = onRemove) { Text("Remove") }
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(
+                checked = stage.isComplete,
+                onCheckedChange = onCheckedChange,
+            )
+            Text(
+                text = stage.title,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (stage.isComplete) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    MaterialTheme.colorScheme.onSurface
+                },
+            )
+            TextButton(onClick = onRemove) { Text("Remove") }
         }
     }
 }
