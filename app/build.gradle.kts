@@ -46,8 +46,8 @@ android {
         applicationId = "com.masamunr.trailcharter"
         minSdk = 28
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.2.0-alpha1"
+        versionCode = 9
+        versionName = "0.2.1-alpha1"
     }
 
     sourceSets { getByName("main").res.srcDir(generatedLauncherResDir) }

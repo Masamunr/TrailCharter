@@ -65,6 +65,29 @@ Room schema version 1 is committed at `app/schemas/com.masamunr.trailcharter.dat
 
 The first schema deliberately does **not** introduce Places, Routes, accommodation/arrangements, pack, food/water, safety, notes, journal, GPX or map-package tables before those details are sufficiently agreed.
 
+## First physical-device feedback
+
+Status: **AGREE / FIX IN PROGRESS**
+
+The first `0.2.0-alpha1` device pass produced these concrete corrections for the next build:
+
+- Adventure dates use UK display order `dd/MM/yyyy` throughout the app.
+- Date selection uses a calendar picker rather than requiring typed ISO/US-style input.
+- Long Stage/milestone entry screens must remain scrollable above the software keyboard; IME insets and bottom scroll clearance are required so input controls cannot become trapped behind the keyboard.
+- Adventure planning needs an explicit finish/save path. `Save adventure` returns to the Adventures list; a direct `Save & new adventure` path may start another Adventure immediately. Stages and milestones remain locally persisted as they are added.
+
+## Map-planned Stages and routing
+
+Status: **EXPLORE**
+
+The intended product direction is for Stages to become spatially plannable rather than remaining text-only containers.
+
+- A Stage may eventually reference one or more shared Routes and Places and be planned directly from the map.
+- Route geometry should be reusable by the map, itinerary and Stage views rather than duplicated.
+- Once route geometry and travel mode are known, TrailCharter should be able to derive useful planning information such as route distance and expected travel time.
+- Exact routing engine, route-generation rules, transport/travel modes, offline routing architecture, elevation/speed assumptions and ETA calculations remain unresolved and must be investigated before implementation.
+- Automatic route/time generation must remain editable by the user and must not turn an Adventure into a rigid schedule.
+
 ## Still EXPLORE
 
 - Exact arrival-radius/tolerance rules for automatic completion.
