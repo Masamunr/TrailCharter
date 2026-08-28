@@ -22,6 +22,8 @@
 - Added the constitution, vision, specification, roadmap, decisions, project status and brand identity documentation to the repository.
 - The historical repository path remains `Masamunr/altrove` for continuity while TrailCharter remains AGREE rather than FINAL.
 - The exact approved no-shield launcher-art reference binary still needs to be committed; the FINAL visual rules are preserved in `docs/brand/BRAND_IDENTITY.md`.
+- 2026-08-28: Added `.github/workflows/android-ci.yml`, path-gated so Android CI starts only when Android/build files exist or change.
+- 2026-08-28: Added `docs/architecture/CI_BUILD.md` documenting the CI/build standard.
 
 ### Android foundation
 - 2026-08-28: Agreed Android namespace and application ID: `com.masamunr.trailcharter`.
@@ -32,4 +34,5 @@
 - 2026-08-28: Refined the network rule to **network-silent by default**: the initial app does not declare `INTERNET` permission; future networking is centralised and only used for clear user-initiated/explicitly enabled features; opening/using core TrailCharter functionality does not create background network activity.
 - 2026-08-28: Agreed local-only backup/export model: no TrailCharter cloud backup service, Android automatic cloud backup disabled/excluded as far as practical, backups created locally on user request, and destinations selected through Android Storage Access Framework. Users may choose a personal provider such as Proton Drive or OneDrive where exposed by Android, without direct TrailCharter cloud integration.
 - 2026-08-28: Agreed least-privilege contextual permissions with no startup permission barrage, preference for Photo Picker/Storage Access Framework over broad media/storage access, background location deferred, and a clear Privacy Status location-tracking On/Off state.
-- Android implementation is authorised but no production application code has been built yet.
+- 2026-08-28: Agreed and implemented the initial GitHub Actions CI foundation. Android/build-file changes run on `ubuntu-latest` with Temurin JDK 17 and the Gradle Wrapper, must pass `testDebugUnitTest`, `lintDebug` and `assembleDebug`, and upload a debug APK on success. The workflow uses the official Gradle setup action for caching/wrapper validation, requires no production signing secrets, and does not publish automatically to Google Play.
+- Android production source has not yet been scaffolded; the first Android scaffold commit is the next implementation step and will trigger the first real CI verification run.
