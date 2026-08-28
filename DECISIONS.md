@@ -35,6 +35,7 @@
 - **Privacy Status:** TrailCharter will provide clear in-app status information for location tracking, including an unambiguous `On` / `Off` state. More detailed privacy-status presentation can evolve with later features.
 - **CI/build pipeline:** GitHub Actions is the Android CI platform. Android/build-file changes on pull requests and pushes to `main` run on `ubuntu-latest` with JDK 17 and the committed Gradle Wrapper. CI must pass `testDebugUnitTest`, `lintDebug` and `assembleDebug`; successful runs upload a debug APK artifact. The official Gradle setup action handles dependency caching and Gradle Wrapper validation.
 - **CI security/release separation:** normal CI/debug builds use no production signing secrets and do not publish automatically to Google Play. Release signing and store publishing remain separate controlled concerns. Workflow permissions remain read-only unless an explicit future task requires more.
+- **Public open-source repository:** the authoritative repository is `Masamunr/TrailCharter` and is public. Repository publication does not change the privacy/local-first behaviour of the application itself.
 - TrailCharter continues the same project history previously discussed under Altrove and Adventure.
 - Android-first, privacy-first, offline-first where practical, open-source intended.
 - OpenStreetMap foundation.
@@ -49,7 +50,8 @@
 ## SUPERSEDED / REJECTED
 - Previous AGREE direction: "No implementation until vision and architecture are sufficiently understood." Superseded on 2026-08-27 by the controlled-foundation implementation decision.
 - Previous AGREE direction: live location sharing as an in-principle product capability. Superseded on 2026-08-28 by the decision to remove live location sharing from the current product/release scope.
-- **Altrove as the product name is rejected/superseded** after clearance identified a directly adjacent active travel-planning app using the name. The repository remains `Masamunr/altrove` for continuity until a later deliberate repository rename.
+- **Altrove as the product name is rejected/superseded** after clearance identified a directly adjacent active travel-planning app using the name.
+- The historical repository path `Masamunr/altrove` was superseded on 2026-08-28 when the repository was renamed to `Masamunr/TrailCharter` and made public.
 
 ## EXPLORE
 - Adventure IA
