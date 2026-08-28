@@ -20,8 +20,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
@@ -32,11 +32,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -46,8 +48,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.masamunr.trailcharter.data.adventure.AdventureEntity
+import com.masamunr.trailcharter.data.adventure.AdventurePlanningSnapshot
 import com.masamunr.trailcharter.data.adventure.AdventureRepository
 import com.masamunr.trailcharter.data.adventure.AdventureSummaryRow
+import com.masamunr.trailcharter.data.adventure.PlanningStageDraft
 import com.masamunr.trailcharter.data.adventure.StageEntity
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -58,6 +62,14 @@ import java.util.Locale
 
 private val ukDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/uuuu", Locale.UK)
 
+internal data class DraftStage(
+    val key: String,
+    val persistedId: Long?,
+    val title: String,
+    val isComplete: Boolean,
+    val completedAtEpochMillis: Long?,
+)
+
 @Composable
 fun TrailCharterApp(
     repository: AdventureRepository,
@@ -65,12 +77,8 @@ fun TrailCharterApp(
     var selectedAdventureId by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingAdventure by rememberSaveable { mutableStateOf(false) }
 
-    BackHandler(enabled = creatingAdventure || selectedAdventureId != null) {
-        if (creatingAdventure) {
-            creatingAdventure = false
-        } else {
-            selectedAdventureId = null
-        }
+    BackHandler(enabled = creatingAdventure) {
+        creatingAdventure = false
     }
 
     when {
@@ -253,8 +261,7 @@ private fun NewAdventureScreen(
     var startDate by rememberSaveable { mutableStateOf<Long?>(null) }
     var endDate by rememberSaveable { mutableStateOf<Long?>(null) }
 
-    val dateOrderInvalid = startDate != null && endDate != null && requireNotNull(endDate) < requireNotNull(startDate)
-    val canCreate = title.isNotBlank() && !dateOrderInvalid
+    val canCreate = title.isNotBlank()
 
     Scaffold(
         topBar = {
@@ -309,18 +316,13 @@ private fun NewAdventureScreen(
                 )
             }
             item {
-                DateInput(
-                    valueEpochDay = startDate,
-                    onValueChange = { startDate = it },
-                    label = "Start date (optional)",
-                )
-            }
-            item {
-                DateInput(
-                    valueEpochDay = endDate,
-                    onValueChange = { endDate = it },
-                    label = "End date (optional)",
-                    supportingText = if (dateOrderInvalid) "End date cannot be before the start date" else null,
+                DateRangeInput(
+                    startEpochDay = startDate,
+                    endEpochDay = endDate,
+                    onRangeChange = { newStart, newEnd ->
+                        startDate = newStart
+                        endDate = newEnd
+                    },
                 )
             }
             item {
@@ -346,7 +348,6 @@ private fun NewAdventureScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AdventureEditorScreen(
     repository: AdventureRepository,
@@ -356,11 +357,13 @@ private fun AdventureEditorScreen(
     onSavedAndNew: () -> Unit,
     onDeleted: () -> Unit,
 ) {
-    val adventure by repository.observeAdventure(adventureId).collectAsState(initial = null)
-    val stages by repository.observeStages(adventureId).collectAsState(initial = emptyList())
+    val planningFlow = remember(repository, adventureId) {
+        repository.observePlanningSession(adventureId)
+    }
+    val snapshot by planningFlow.collectAsState(initial = null)
+    val currentSnapshot = snapshot
 
-    val currentAdventure = adventure
-    if (currentAdventure == null) {
+    if (currentSnapshot == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -369,8 +372,7 @@ private fun AdventureEditorScreen(
 
     AdventureEditorContent(
         repository = repository,
-        adventure = currentAdventure,
-        stages = stages,
+        snapshot = currentSnapshot,
         onBack = onBack,
         onSaved = onSaved,
         onSavedAndNew = onSavedAndNew,
@@ -382,24 +384,117 @@ private fun AdventureEditorScreen(
 @Composable
 private fun AdventureEditorContent(
     repository: AdventureRepository,
-    adventure: AdventureEntity,
-    stages: List<StageEntity>,
+    snapshot: AdventurePlanningSnapshot,
     onBack: () -> Unit,
     onSaved: () -> Unit,
     onSavedAndNew: () -> Unit,
     onDeleted: () -> Unit,
 ) {
+    val adventure = snapshot.adventure
+    val persistedStages = snapshot.stages
     val scope = rememberCoroutineScope()
+
     var title by rememberSaveable(adventure.id) { mutableStateOf(adventure.title) }
     var summary by rememberSaveable(adventure.id) { mutableStateOf(adventure.summary) }
     var startDate by rememberSaveable(adventure.id) { mutableStateOf(adventure.startDateEpochDay) }
     var endDate by rememberSaveable(adventure.id) { mutableStateOf(adventure.endDateEpochDay) }
     var newStageTitle by rememberSaveable(adventure.id) { mutableStateOf("") }
+    var nextDraftStageNumber by rememberSaveable(adventure.id) { mutableStateOf(1) }
     var showDeleteDialog by rememberSaveable(adventure.id) { mutableStateOf(false) }
+    var showUnsavedDialog by rememberSaveable(adventure.id) { mutableStateOf(false) }
 
-    val dateOrderInvalid = startDate != null && endDate != null && requireNotNull(endDate) < requireNotNull(startDate)
-    val canSave = title.isNotBlank() && !dateOrderInvalid
-    val completedStages = stages.count { it.isComplete }
+    val draftStages = remember(adventure.id) {
+        mutableStateListOf<DraftStage>().apply {
+            addAll(
+                persistedStages.map { stage ->
+                    DraftStage(
+                        key = "stage-${stage.id}",
+                        persistedId = stage.id,
+                        title = stage.title,
+                        isComplete = stage.isComplete,
+                        completedAtEpochMillis = stage.completedAtEpochMillis,
+                    )
+                },
+            )
+        }
+    }
+
+    val canSave = title.isNotBlank()
+    val completedStages = draftStages.count { it.isComplete }
+    val hasChanges = planningSessionHasChanges(
+        adventure = adventure,
+        persistedStages = persistedStages,
+        title = title,
+        summary = summary,
+        startDateEpochDay = startDate,
+        endDateEpochDay = endDate,
+        draftStages = draftStages,
+    )
+
+    fun saveAndThen(afterSave: () -> Unit) {
+        scope.launch {
+            repository.savePlanningSession(
+                snapshot = snapshot,
+                title = title,
+                summary = summary,
+                startDateEpochDay = startDate,
+                endDateEpochDay = endDate,
+                stages = draftStages.map { stage ->
+                    PlanningStageDraft(
+                        persistedId = stage.persistedId,
+                        title = stage.title,
+                        isComplete = stage.isComplete,
+                        completedAtEpochMillis = stage.completedAtEpochMillis,
+                    )
+                },
+            )
+            afterSave()
+        }
+    }
+
+    fun requestExit() {
+        if (hasChanges) {
+            showUnsavedDialog = true
+        } else {
+            onBack()
+        }
+    }
+
+    BackHandler { requestExit() }
+
+    if (showUnsavedDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsavedDialog = false },
+            title = { Text("Save changes?") },
+            text = { Text("You have unsaved changes in this planning session.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showUnsavedDialog = false
+                        saveAndThen(onBack)
+                    },
+                    enabled = canSave,
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            showUnsavedDialog = false
+                            onBack()
+                        },
+                    ) {
+                        Text("Don't save")
+                    }
+                    TextButton(onClick = { showUnsavedDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            },
+        )
+    }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -436,7 +531,7 @@ private fun AdventureEditorContent(
                     )
                 },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Back") }
+                    TextButton(onClick = ::requestExit) { Text("Back") }
                 },
             )
         },
@@ -477,38 +572,14 @@ private fun AdventureEditorContent(
                 )
             }
             item {
-                DateInput(
-                    valueEpochDay = startDate,
-                    onValueChange = { startDate = it },
-                    label = "Start date",
-                )
-            }
-            item {
-                DateInput(
-                    valueEpochDay = endDate,
-                    onValueChange = { endDate = it },
-                    label = "End date",
-                    supportingText = if (dateOrderInvalid) "End date cannot be before the start date" else null,
-                )
-            }
-            item {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            repository.updateAdventure(
-                                adventure = adventure,
-                                title = title,
-                                summary = summary,
-                                startDateEpochDay = startDate,
-                                endDateEpochDay = endDate,
-                            )
-                        }
+                DateRangeInput(
+                    startEpochDay = startDate,
+                    endEpochDay = endDate,
+                    onRangeChange = { newStart, newEnd ->
+                        startDate = newStart
+                        endDate = newEnd
                     },
-                    enabled = canSave,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Save details")
-                }
+                )
             }
 
             item { SectionDivider(title = "Stages") }
@@ -520,7 +591,7 @@ private fun AdventureEditorContent(
                 )
             }
             item {
-                if (stages.isEmpty()) {
+                if (draftStages.isEmpty()) {
                     Text(
                         text = "Stages are optional. Use them for days, legs or other useful sections.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -528,13 +599,13 @@ private fun AdventureEditorContent(
                     )
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        val progress = completedStages.toFloat() / stages.size.toFloat()
+                        val progress = completedStages.toFloat() / draftStages.size.toFloat()
                         LinearProgressIndicator(
                             progress = { progress },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Text(
-                            text = "$completedStages of ${stages.size} stages complete",
+                            text = "$completedStages of ${draftStages.size} stages complete",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -542,13 +613,21 @@ private fun AdventureEditorContent(
                 }
             }
 
-            items(stages, key = { "stage-${it.id}" }) { stage ->
+            items(draftStages, key = { it.key }) { stage ->
                 StageRow(
                     stage = stage,
                     onCheckedChange = { checked ->
-                        scope.launch { repository.setStageComplete(stage, checked) }
+                        val index = draftStages.indexOfFirst { it.key == stage.key }
+                        if (index >= 0) {
+                            draftStages[index] = stage.copy(
+                                isComplete = checked,
+                                completedAtEpochMillis = if (checked) System.currentTimeMillis() else null,
+                            )
+                        }
                     },
-                    onRemove = { scope.launch { repository.deleteStage(stage) } },
+                    onRemove = {
+                        draftStages.removeAll { it.key == stage.key }
+                    },
                 )
             }
 
@@ -567,9 +646,19 @@ private fun AdventureEditorContent(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            val stageTitle = newStageTitle
-                            newStageTitle = ""
-                            scope.launch { repository.addStage(adventure.id, stageTitle) }
+                            val stageTitle = newStageTitle.trim()
+                            if (stageTitle.isNotEmpty()) {
+                                draftStages.add(
+                                    DraftStage(
+                                        key = "draft-${nextDraftStageNumber++}",
+                                        persistedId = null,
+                                        title = stageTitle,
+                                        isComplete = false,
+                                        completedAtEpochMillis = null,
+                                    ),
+                                )
+                                newStageTitle = ""
+                            }
                         },
                         enabled = newStageTitle.isNotBlank(),
                     ) {
@@ -579,7 +668,7 @@ private fun AdventureEditorContent(
             }
             item {
                 Text(
-                    text = "Stage completion is manual in this pass. Optional location-based completion remains a future setting.",
+                    text = "Changes stay in this planning session until you save. Stage completion is manual in this pass.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -587,27 +676,9 @@ private fun AdventureEditorContent(
 
             item { SectionDivider(title = "Adventure actions") }
             item {
-                Text(
-                    text = "Stages and their completion state are stored as you work. Save adventure stores the current details and finishes this planning session.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            item {
                 Button(
-                    onClick = {
-                        scope.launch {
-                            repository.updateAdventure(
-                                adventure = adventure,
-                                title = title,
-                                summary = summary,
-                                startDateEpochDay = startDate,
-                                endDateEpochDay = endDate,
-                            )
-                            onSaved()
-                        }
-                    },
-                    enabled = canSave,
+                    onClick = { saveAndThen(onSaved) },
+                    enabled = canSave && hasChanges,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Save adventure")
@@ -615,18 +686,7 @@ private fun AdventureEditorContent(
             }
             item {
                 OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            repository.updateAdventure(
-                                adventure = adventure,
-                                title = title,
-                                summary = summary,
-                                startDateEpochDay = startDate,
-                                endDateEpochDay = endDate,
-                            )
-                            onSavedAndNew()
-                        }
-                    },
+                    onClick = { saveAndThen(onSavedAndNew) },
                     enabled = canSave,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -647,7 +707,7 @@ private fun AdventureEditorContent(
 
 @Composable
 private fun StageRow(
-    stage: StageEntity,
+    stage: DraftStage,
     onCheckedChange: (Boolean) -> Unit,
     onRemove: () -> Unit,
 ) {
@@ -679,67 +739,101 @@ private fun StageRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateInput(
-    valueEpochDay: Long?,
-    onValueChange: (Long?) -> Unit,
-    label: String,
-    supportingText: String? = null,
+private fun DateRangeInput(
+    startEpochDay: Long?,
+    endEpochDay: Long?,
+    onRangeChange: (Long?, Long?) -> Unit,
 ) {
-    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        OutlinedButton(
-            onClick = { showDatePicker = true },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                text = "$label: ${formatEpochDay(valueEpochDay).ifBlank { "Choose date" }}",
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(if (valueEpochDay == null) "Choose" else "Change")
-        }
-
-        if (valueEpochDay != null) {
-            TextButton(onClick = { onValueChange(null) }) {
-                Text("Clear date")
-            }
-        }
-
-        supportingText?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        CompactDateButton(
+            label = "Start",
+            valueEpochDay = startEpochDay,
+            onClick = { showDateRangePicker = true },
+            modifier = Modifier.weight(1f),
+        )
+        CompactDateButton(
+            label = "End",
+            valueEpochDay = endEpochDay,
+            onClick = { showDateRangePicker = true },
+            modifier = Modifier.weight(1f),
+        )
     }
 
-    if (showDatePicker) {
-        val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = valueEpochDay?.let(::epochDayToUtcMillis),
+    if (showDateRangePicker) {
+        val pickerState = rememberDateRangePickerState(
+            initialSelectedStartDateMillis = startEpochDay?.let(::epochDayToUtcMillis),
+            initialSelectedEndDateMillis = endEpochDay?.let(::epochDayToUtcMillis),
         )
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { showDateRangePicker = false },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onValueChange(pickerState.selectedDateMillis?.let(::utcMillisToEpochDay))
-                        showDatePicker = false
+                        onRangeChange(
+                            pickerState.selectedStartDateMillis?.let(::utcMillisToEpochDay),
+                            pickerState.selectedEndDateMillis?.let(::utcMillisToEpochDay),
+                        )
+                        showDateRangePicker = false
                     },
-                    enabled = pickerState.selectedDateMillis != null,
+                    enabled = pickerState.selectedStartDateMillis != null && pickerState.selectedEndDateMillis != null,
                 ) {
                     Text("OK")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
+                Row {
+                    if (startEpochDay != null || endEpochDay != null) {
+                        TextButton(
+                            onClick = {
+                                onRangeChange(null, null)
+                                showDateRangePicker = false
+                            },
+                        ) {
+                            Text("Clear")
+                        }
+                    }
+                    TextButton(onClick = { showDateRangePicker = false }) {
+                        Text("Cancel")
+                    }
                 }
             },
         ) {
-            DatePicker(state = pickerState)
+            DateRangePicker(
+                state = pickerState,
+                showModeToggle = false,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactDateButton(
+    label: String,
+    valueEpochDay: Long?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = formatEpochDay(valueEpochDay).ifBlank { "Choose date" },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -756,6 +850,29 @@ private fun SectionDivider(title: String) {
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+internal fun planningSessionHasChanges(
+    adventure: AdventureEntity,
+    persistedStages: List<StageEntity>,
+    title: String,
+    summary: String,
+    startDateEpochDay: Long?,
+    endDateEpochDay: Long?,
+    draftStages: List<DraftStage>,
+): Boolean {
+    if (title != adventure.title) return true
+    if (summary != adventure.summary) return true
+    if (startDateEpochDay != adventure.startDateEpochDay) return true
+    if (endDateEpochDay != adventure.endDateEpochDay) return true
+    if (persistedStages.size != draftStages.size) return true
+
+    return persistedStages.zip(draftStages).any { (persisted, draft) ->
+        draft.persistedId != persisted.id ||
+            draft.title != persisted.title ||
+            draft.isComplete != persisted.isComplete ||
+            draft.completedAtEpochMillis != persisted.completedAtEpochMillis
     }
 }
 
