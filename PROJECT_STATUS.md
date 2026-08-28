@@ -81,10 +81,25 @@ The UI foundation does not lock TrailCharter into stock Material appearance. Mat
 - Exact backup archive format and optional user-controlled backup encryption remain **EXPLORE**
 - Status: **AGREE**
 
+## CI / build foundation
+- GitHub Actions is the Android CI platform
+- Workflow: `.github/workflows/android-ci.yml`
+- Runs on Android/build-file changes for pull requests and pushes to `main`; manual dispatch is available
+- Runner: `ubuntu-latest`
+- JDK: Temurin 17
+- Gradle: committed Gradle Wrapper with setup/caching/wrapper validation via `gradle/actions/setup-gradle`
+- Verification gate: `testDebugUnitTest`, `lintDebug`, `assembleDebug`
+- Successful builds upload a debug APK artifact; failure reports/logs are uploaded where available
+- Debug APK retention: 14 days; failure reports: 7 days
+- No production signing secrets required for ordinary CI/debug builds
+- No automatic Google Play publishing at this stage
+- Detailed CI rules: `docs/architecture/CI_BUILD.md`
+- Status: **AGREE / IMPLEMENTED (workflow armed; first real run awaits Android scaffold)**
+
 ## Implementation
 Android implementation is authorised as a controlled foundation phase.
 
-No production Android application has been implemented yet.
+No production Android application has been implemented yet. The CI workflow is now present and path-gated; the next Android/build-file commit will provide the first meaningful CI run.
 
 ## Current state
 - Project history consolidated.
@@ -101,6 +116,7 @@ No production Android application has been implemented yet.
 - Compose-first, Material 3-backed UI foundation agreed while preserving full TrailCharter visual-design control.
 - Local-first persistence architecture agreed using Room, DataStore and app-managed files behind repository boundaries.
 - Network-silent privacy rules, local-only user-controlled backup/export, contextual permissions and location-tracking privacy status are agreed.
+- GitHub Actions CI/build foundation agreed and implemented as a path-gated workflow ready for the Android scaffold.
 - Altrove as a product name is rejected/superseded because of a directly adjacent active travel-planning product using that name.
 - Seasonal icon system locked as FINAL.
 - GitHub repository exists at `Masamunr/altrove`.
@@ -120,7 +136,7 @@ No production Android application has been implemented yet.
 - Treat UK mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
 
 ## Next priorities
-1. Define CI/build pipeline.
+1. Create the Android foundation scaffold and achieve the first CI-verified installable debug APK.
 2. Preserve the exact FINAL launcher icon reference asset in GitHub.
 3. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
 4. Define the Adventure information model and main UX/navigation model.
