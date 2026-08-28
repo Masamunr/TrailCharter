@@ -29,9 +29,10 @@ Foundation decisions completed:
 - backup/export: no TrailCharter cloud backup, automatic Android cloud backup disabled/excluded as far as practical, locally created user-initiated backups with Storage Access Framework destinations including user-controlled providers such as Proton Drive/OneDrive where available through Android
 - permissions/privacy status: contextual least privilege, Photo Picker/Storage Access Framework preferred, background location deferred, clear location-tracking On/Off status
 - geographic/product boundary: UK only for current release planning; live location sharing excluded; zero-owned-server architecture for core functionality
+- CI/build pipeline: GitHub Actions on Android/build-file changes, JDK 17, Gradle Wrapper, `testDebugUnitTest` + `lintDebug` + `assembleDebug`, debug APK artifact upload, wrapper validation/caching via the official Gradle action, no release signing or automatic Play publication
 
 Remaining initial foundation scope:
-- CI/build pipeline
+- create the Android project scaffold and achieve the first successful CI-verified debug APK
 - branding/theme implementation
 - exact backup archive format and optional user-controlled backup encryption
 - replaceable architectural seams for unresolved UK map/routing choices
