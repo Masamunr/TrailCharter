@@ -80,7 +80,7 @@ jobs:
           PMTILES_BIN=$(find "$TOOL_DIR" -maxdepth 2 -type f -name pmtiles -print -quit)
           test -n "$PMTILES_BIN"
           chmod +x "$PMTILES_BIN"
-          "$PMTILES_BIN" --version
+          "$PMTILES_BIN" --help >/dev/null
 
           # Stable OSM-derived Protomaps v4 mirror. This is a build-time source only; the
           # resulting extract is embedded in the spike APK and the app remains network-silent.
