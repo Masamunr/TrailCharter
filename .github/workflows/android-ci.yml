@@ -92,6 +92,18 @@ jobs:
       - name: Unit tests, lint and debug build
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace --no-daemon
 
+      - name: Verify network-silent APK permissions
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
+          test -n "$APK_PATH"
+          PERMISSIONS=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$APK_PATH")
+          printf '%s\n' "$PERMISSIONS"
+          if grep -q 'android.permission.INTERNET' <<< "$PERMISSIONS"; then
+            echo "Unexpected INTERNET permission in final merged APK." >&2
+            exit 1
+          fi
+          echo "Final APK has no INTERNET permission."
+
       - name: Verify continuity signing certificate
         env:
           EXPECTED_CERT_SHA256: b0c753f9b46c1ca25a0ae546e4aefe818a95dc83f95be74bccd3cf17e947d26c
