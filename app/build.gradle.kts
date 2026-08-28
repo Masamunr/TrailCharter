@@ -6,9 +6,9 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-val launcherArtworkSource = layout.projectDirectory.file("branding/ic_launcher.webp")
+val launcherArtworkSource = layout.projectDirectory.file("branding/ic_launcher_shield.webp")
 val generatedLauncherResDir = layout.buildDirectory.dir("generated/trailcharterLauncher/res")
-val expectedLauncherArtworkSha256 = "a7e1f774ea70f820f299b373e7d24d7bf397cd119e8196335d0001a48b7d8f1c"
+val expectedLauncherArtworkSha256 = "881ca2eca089dcd7ee89f0ed1dd425cd6cd8fddb4480526a6571928c450f3fb8"
 
 val prepareLauncherIcon by tasks.registering {
     inputs.file(launcherArtworkSource)
@@ -33,7 +33,7 @@ val prepareLauncherIcon by tasks.registering {
             .digest(artwork)
             .joinToString("") { "%02x".format(it.toInt() and 0xff) }
         check(actualSha256 == expectedLauncherArtworkSha256) {
-            "Launcher artwork bytes do not match the approved source"
+            "Launcher artwork bytes do not match the approved shield source"
         }
 
         val mipmapDir = generatedLauncherResDir.get().dir("mipmap-xxxhdpi").asFile
@@ -52,8 +52,8 @@ android {
         applicationId = "com.masamunr.trailcharter"
         minSdk = 28
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.1.3-foundation"
+        versionCode = 5
+        versionName = "0.1.4-foundation"
     }
 
     sourceSets {
