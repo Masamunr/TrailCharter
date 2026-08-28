@@ -14,9 +14,13 @@ Purpose: prove that TrailCharter can keep Adventure data, map rendering, offline
 - The current MapLibre style-spec support table does **not** show 3D terrain extrusion as supported by MapLibre Native Android. Near-term TrailCharter topo expectations should therefore be contours + shaded relief rather than 3D terrain until that changes or another renderer is selected.
 - MapLibre Native is BSD-2-Clause; MapLibre Compose is a maintained Compose wrapper published through Maven Central.
 - **Important privacy finding:** the MapLibre Native Android library manifest contributes `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `ACCESS_COARSE_LOCATION` and `ACCESS_FINE_LOCATION` permissions by default. TrailCharter's offline spike explicitly removes all five during manifest merge. The CI spike checks the final APK, not merely TrailCharter's source manifest, so a transitive dependency cannot silently widen the current privacy baseline.
-- MapLibre Compose 0.14 uses the Vulkan-backed Android SDK by default. The first physical-device Map Spike build (`run #55`) crashed immediately on opening the map surface. This is consistent with current upstream MapLibre Vulkan crash reports on some Android devices, including Android 16.
-- The controlled retest changes **only the rendering backend** to MapLibre Android OpenGL ES using the documented compatibility setup: exclude `org.maplibre.gl:android-sdk` and add `org.maplibre.gl:android-sdk-opengl:13.0.2`. The PMTiles fixture, map style, activity and privacy configuration are otherwise unchanged.
-- CI `run #57` passes with the OpenGL backend, including tests, lint, final-APK privacy permission verification, signing verification, Room schema upload and APK assembly. Physical-device OpenGL retest remains pending.
+- MapLibre Compose 0.14.0 currently resolves MapLibre Android 13.0.2.
+- The first physical Map Spike (`run #55`, Vulkan) crashed when the map surface opened.
+- A controlled OpenGL-only backend retest (`run #57`) also crashed, so Vulkan alone is **not** the root cause.
+- A staged Compose diagnostic (`run #59`) opened safely before a map was created, but every stage that instantiated `MaplibreMap`, including an engine-only background with no PMTiles or route data, crashed on the physical Android 16 device. This eliminates PMTiles and inline route styling as the immediate startup trigger.
+- A deeper native diagnostic (`run #60`) then bypassed MapLibre Compose. Stage 1, `MapLibre.getInstance()` with no `MapView`, **passed physically**. Stage 2, a direct SurfaceView-backed `MapView`, crashed and Android recorded `JAVA CRASH; status/signal=0`.
+- Inspection of `run #60` found that its direct test harness was not faithfully ordering `MapView` lifecycle events: it invoked `onCreate`/start/resume before the Android view was guaranteed to be attached. MapLibre Compose's own Android implementation creates the `MapView` first and then forwards lifecycle events through a Lifecycle observer. Therefore the `run #60` Stage 2 crash is **invalid evidence against SurfaceView itself**.
+- `run #61` corrects the direct native diagnostic to mirror MapLibre Compose's lifecycle ordering exactly and also persists the full uncaught Java exception stack before Android's normal crash handler runs. Physical retest is pending.
 
 ### BRouter
 
@@ -58,19 +62,25 @@ Room schema is unchanged. No production renderer/routing engine is selected.
 
 ## Current technical interpretation
 
-1. **MapLibre remains the leading rendering candidate** because local single-file PMTiles, vector styling, raster imagery and raster-DEM hillshade all fit TrailCharter's modular requirements.
-2. Vulkan is **not accepted as the TrailCharter baseline** on current evidence because the first physical-device spike crashed at map startup. OpenGL is now the controlled compatibility retest path.
-3. MapLibre's transitive permissions are not a blocker because Android manifest merging allows TrailCharter to remove them, but the final-APK permission check must remain a hard CI guard until individual permissions are deliberately introduced.
-4. **BRouter remains the lower-complexity routing candidate at runtime** for an outdoor-first implementation, but its build/distribution path needs a deliberate source-module or package strategy.
-5. **Valhalla remains the richer routing candidate** where robust map matching, mixed travel modes and possible future traffic integration carry more weight, with a larger native integration and version-compatibility surface.
-6. Map rendering and routing should remain separate interfaces regardless of the eventual engine choices.
-7. Aerial imagery is technically straightforward at renderer level but provider licensing, attribution, caching and offline rights are the real constraints.
-8. Live traffic can potentially use regional public/open feeds without transmitting continuous device location, but coverage and provider terms require a separate investigation.
+1. **MapLibre remains under active evaluation, not selected.** Its feature set still fits TrailCharter well, but the physical-device crash must be explained before it can be accepted.
+2. Vulkan is not the sole cause because the OpenGL retest also crashed.
+3. PMTiles and route styling are not the immediate cause because an engine-only Compose map crashes before either is used.
+4. MapLibre Native library initialisation itself works on the physical Android 16 device; the failure occurs later when a map/rendering path is introduced.
+5. The `run #60` direct SurfaceView result cannot be used to condemn SurfaceView because the diagnostic lifecycle ordering was incorrect. `run #61` is the authoritative corrected direct-renderer diagnostic.
+6. MapLibre's transitive permissions are not a blocker because Android manifest merging allows TrailCharter to remove them, but the final-APK permission check must remain a hard CI guard until individual permissions are deliberately introduced.
+7. **BRouter remains the lower-complexity routing candidate at runtime** for an outdoor-first implementation, but its build/distribution path needs a deliberate source-module or package strategy.
+8. **Valhalla remains the richer routing candidate** where robust map matching, mixed travel modes and possible future traffic integration carry more weight, with a larger native integration and version-compatibility surface.
+9. Map rendering and routing should remain separate interfaces regardless of the eventual engine choices.
+10. Aerial imagery is technically straightforward at renderer level but provider licensing, attribution, caching and offline rights are the real constraints.
+11. Live traffic can potentially use regional public/open feeds without transmitting continuous device location, but coverage and provider terms require a separate investigation.
 
 ## Next evidence required
 
-- Physically retest the identical local-PMTiles spike with the OpenGL backend from CI `run #57`.
-- If OpenGL is stable, proceed to representative UK vector data and local raster-DEM hillshade.
+- Physically run corrected diagnostic `run #61` in order: library init, direct SurfaceView, then direct TextureView only if the preceding stage passes.
+- If a corrected direct-map stage crashes, reopen the diagnostic and capture both Android's previous-process record and the persisted Java exception stack before starting another stage.
+- If direct native rendering is stable while MapLibre Compose remains unstable, reject the Compose wrapper but retain MapLibre Native as a possible renderer.
+- If corrected direct SurfaceView and TextureView both fail, reject MapLibre for the current TrailCharter Android baseline and move the renderer spike to Mapsforge.
+- If a stable renderer path is proven, proceed to representative UK vector data and local raster-DEM hillshade.
 - Measure APK/package size impact of the renderer dependency.
 - Separately prototype BRouter and valhalla-mobile behind `RoutingEngineBoundary` using representative UK walking routes.
 - Compare route quality, waypoint snapping, recalculation, distance/elevation/ETA, memory and calculation time.
