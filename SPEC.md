@@ -5,6 +5,7 @@
 - Android namespace: `com.masamunr.trailcharter`
 - Android application ID: `com.masamunr.trailcharter`
 - Android SDK baseline: `minSdk = 28`, `targetSdk = 36`, `compileSdk = 36`
+- Android build toolchain: Android Gradle Plugin `8.13.2`, Gradle `8.13`, Kotlin `2.3.21`, JDK `17`, Kotlin DSL build scripts, Gradle version catalog (`libs.versions.toml`)
 - Android-first
 - Privacy-first
 - Offline-first wherever practical
