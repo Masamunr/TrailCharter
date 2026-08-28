@@ -67,14 +67,17 @@ The first schema deliberately does **not** introduce Places, Routes, accommodati
 
 ## First physical-device feedback
 
-Status: **AGREE / FIX IN PROGRESS**
+Status: **AGREE / IMPLEMENTED / PHYSICAL RETEST PENDING**
 
-The first `0.2.0-alpha1` device pass produced these concrete corrections for the next build:
+The first `0.2.0-alpha1` device pass produced these concrete corrections, implemented in `0.2.1-alpha1` / versionCode 9:
 
 - Adventure dates use UK display order `dd/MM/yyyy` throughout the app.
 - Date selection uses a calendar picker rather than requiring typed ISO/US-style input.
-- Long Stage/milestone entry screens must remain scrollable above the software keyboard; IME insets and bottom scroll clearance are required so input controls cannot become trapped behind the keyboard.
-- Adventure planning needs an explicit finish/save path. `Save adventure` returns to the Adventures list; a direct `Save & new adventure` path may start another Adventure immediately. Stages and milestones remain locally persisted as they are added.
+- Long Stage/milestone entry screens remain scrollable above the software keyboard using IME insets and bottom scroll clearance so input controls cannot become trapped behind the keyboard.
+- Adventure planning has an explicit finish/save path. `Save adventure` returns to the Adventures list and `Save & new adventure` starts another Adventure immediately. Stages and milestones remain locally persisted as they are added.
+- Unit tests lock UK date ordering and calendar date round-trip behaviour.
+
+These fixes were merged through PR #9 at merge commit `62dba4df7be7615be073e7538cea1643940f2367`. Post-merge Android CI run #33 (`33196188717`) passed unit tests, lint, debug assembly, continuity-signing certificate verification, Room-schema export and artifact upload. Physical-device retest remains required before these corrections are treated as accepted.
 
 ## Map-planned Stages and routing
 
