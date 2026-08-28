@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TrailCharter</string>
+    <string name="foundation_build">Foundation build</string>
+    <string name="foundation_ui_note">Interface intentionally provisional</string>
+    <string name="privacy_status">Privacy status</string>
+    <string name="location_tracking">Location tracking</string>
+    <string name="status_off">Off</string>
+    <string name="internet">Internet</string>
+    <string name="internet_disabled_foundation">Disabled in foundation build</string>
+    <string name="cloud_backup">Cloud backup</string>
+    <string name="foundation_footer">UK-only foundation • local-first • no account • no analytics</string>
+</resources>
