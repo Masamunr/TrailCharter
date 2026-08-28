@@ -19,6 +19,11 @@
 - **Compose/UI foundation:** Jetpack Compose-first, Compose BOM `2026.06.00`, Material 3 as the interaction/accessibility foundation, single-activity architecture, edge-to-edge layouts, adaptive/responsive layouts from inception, accessibility-first components, and no ordinary XML screen layouts.
 - **TrailCharter design system:** TrailCharter owns its colours, typography, shapes and component styling. Seasonal palettes are controlled by TrailCharter; Android dynamic colour is not enabled by default. Optional system-colour support may be explored later.
 - **Navigation remains EXPLORE:** the Android foundation must keep navigation replaceable until the Adventure UX model is agreed.
+- **Local-first persistence:** Room is the structured-data store; DataStore is used for settings/preferences; GPX, attachments and later offline/map packages are stored as app-managed files with structured metadata/references where appropriate.
+- **Persistence boundaries:** UI code does not access storage directly. Data access is exposed through repository/interfaces so underlying storage/import mechanisms remain replaceable.
+- **Database generation/migrations:** use KSP for generated database code; maintain explicit versioned Room migrations from the beginning; destructive production migrations are not permitted.
+- **Local authority:** personal/core Adventure data is stored locally as the authoritative copy and core functionality must not depend on a cloud/backend service.
+- **Secrets:** credentials or cryptographic key material, if later required, use Android Keystore-backed handling rather than ordinary preferences/database fields.
 - TrailCharter continues the same project history previously discussed under Altrove and Adventure.
 - Android-first, privacy-first, offline-first where practical, open-source intended.
 - OpenStreetMap foundation.
@@ -40,6 +45,7 @@
 - Adventure IA
 - primary navigation model
 - optional Android system/dynamic colour mode
+- enhanced application-level encryption/threat model beyond normal Android app sandbox/device encryption
 - Organic Maps technical relationship
 - offline architecture
 - live-sharing architecture
