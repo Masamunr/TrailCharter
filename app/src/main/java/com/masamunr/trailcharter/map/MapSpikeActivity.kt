@@ -13,7 +13,7 @@ class MapSpikeActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             TrailCharterTheme {
-                MapSpikeScreen()
+                OfflineUkMapSpikeScreen()
             }
         }
     }
