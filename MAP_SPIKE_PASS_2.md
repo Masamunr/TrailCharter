@@ -12,14 +12,14 @@ Map rendering and routing remain separate replaceable boundaries. True 3D remain
 
 ## Cartography pass 2 implementation
 
-Current branch head after pass 2 raises the controlled Eryri prototype to:
+Pass 2 raised the controlled Eryri prototype to:
 
 - Protomaps / OSM vector basemap extracted through native z15.
-- Mapterhorn terrain composed from the global z0-z12 archive plus the Eryri-containing regional high-resolution shard through z15.
+- Mapterhorn terrain composed from the global z0-z12 archive plus regional high-resolution terrain above z12.
 - One merged local terrain PMTiles package consumed by MapLibre.
 - Local MapLibre style source ceilings explicitly set to z15.
 - Map camera allowed to overzoom beyond the native package ceiling for inspection.
-- One-tap view presets for approximately 0°, 30° and 50° pitch. This is a usability spike, not a claim that the current control footprint is final.
+- One-tap view presets for approximately 0°, 30° and 50° pitch. This was a usability spike, not a final control design.
 
 The app remains network-silent at runtime. The map packages are fetched only by CI at build time and embedded in the spike APK.
 
@@ -49,24 +49,41 @@ The binary PMTiles headers in the APK report z0-z15 for both the vector and terr
 
 ### Interpretation
 
-The z15 terrain experiment is deliberately large enough to establish whether the visual gain is worth the storage and copy cost. Roughly 287 MB of terrain for this small prototype region is **not** evidence that the same packaging strategy is suitable for a UK release. Production regionalisation, a lower native terrain ceiling, a different DEM encoding/source, or on-demand user-selected local packages may ultimately be required.
+The full-region z15 terrain experiment established that the visual-data path worked, but its roughly 287 MB terrain archive and 361 MiB APK were not a practical sideload/install candidate. Run #75 is therefore superseded for physical testing.
 
-Do not increase to z18 until run 75 has physical-device evidence.
+## Run 79 corrective packaging and physical evidence
 
-## Required physical acceptance for run 75
+Run **#79** replaced the full-region high-zoom terrain package with:
 
-CI success is not physical acceptance. On the Android 16 Motorola Edge 50 Pro, verify:
+- full Eryri z0-z12 terrain;
+- a controlled central Yr Wyddfa z13-z15 terrain area;
+- the same native z15 Protomaps vector basemap;
+- isolated `com.masamunr.trailcharter.mapspike` identity at versionCode 12; and
+- hard CI limits of <=100 MiB for the merged terrain package and <=190 MiB for the final spike APK.
 
-1. The map spike updates/installs normally beside normal TrailCharter.
-2. First launch completes the larger embedded-package copy without crash, ANR or obviously unreasonable delay.
-3. Relief is visibly sharper than the accepted z12 terrain build at walking-scale zoom.
-4. Panning and zooming around steep Eryri terrain remain responsive at high zoom.
-5. Repeated zoom/pan does not produce blank terrain, tile corruption or runaway memory behaviour.
-6. Flat, Low and Terrain controls reliably move to approximately 0°, 30° and 50° without requiring the two-finger tilt gesture.
-7. North can still be restored using the map compass/reset behaviour.
-8. Water artefacts fixed in pass 1 remain absent.
-9. No unexpected runtime request for connectivity or location permission appears.
-10. The control placement is usable without materially obscuring the map. The current control layout is not FINAL and may be compacted after physical feedback.
+Measured Run #79 package sizes:
+
+| Item | Bytes | Approx. MiB |
+| --- | ---: | ---: |
+| APK | 164,819,900 | 157.2 |
+| Terrain PMTiles | 72,874,578 | 69.5 |
+
+Run #79 passed unit tests, lint, assembly, embedded-uncompressed PMTiles verification, install-identity/version checks, continuity-signing verification and the network/location-silent permission baseline.
+
+### Physical acceptance, 28/08/2026
+
+Run #79 downloaded, installed and ran successfully on the physical Android 16 Motorola Edge 50 Pro. The user reported that the build works well overall. This is the physical acceptance point for Cartography Pass 2.
+
+Accepted evidence carried forward:
+
+1. The separate `.mapspike` package installs and runs beside normal TrailCharter.
+2. The corrective package size is practical enough for physical testing.
+3. The offline Eryri map and local hillshade render successfully.
+4. The previous water/cartography corrections remain acceptable.
+5. Camera pitch controls function physically.
+6. No runtime permission/connectivity regression was reported.
+
+Physical acceptance does **not** make the current package shape or pitch-button UI final. The user specifically requested finer close-up resolution and replacement of the preset-button stack with a slider-based camera control. Those refinements are recorded in `docs/architecture/MAP_CARTOGRAPHY_PASS_3.md`.
 
 ## True 3D terrain implementation: EXPLORE
 
@@ -135,7 +152,9 @@ Runtime contour calculation remains unnecessary for the current design.
 
 ## Routing gate after this pass
 
-Do not begin production routing selection merely because run 75 builds. Once higher-resolution terrain and view controls have physical acceptance, prototype routing behind the existing routing boundary:
+Cartography Pass 2 now has physical acceptance through Run #79. The next agreed cartography refinement is Pass 3, covering slider camera controls and a controlled genuine close-up terrain-resolution increase. Routing comparison remains gated until that pass has physical evidence, so map interaction/data packaging are not changed at the same time as the routing engine comparison.
+
+After Pass 3 physical acceptance, prototype routing behind the existing routing boundary:
 
 1. BRouter first as the lower-complexity outdoor/offline magnetic-routing candidate.
 2. Valhalla second as the richer map-matching/multimodal candidate with higher integration cost.
@@ -146,6 +165,8 @@ Required evidence remains snap-to-road/path/trail behaviour, recalculation when 
 
 - Filament repository/readme and Android API guidance: https://github.com/google/filament
 - Cesium Native repository and rendering integration guidance: https://github.com/CesiumGS/cesium-native and https://cesium.com/learn/cesium-native/ref-doc/rendering-3d-tiles.html
+- Mapterhorn data access: https://mapterhorn.com/data-access/
+- Protomaps basemap downloads: https://docs.protomaps.com/basemaps/downloads
 - OS Terrain 50 product information: https://www.ordnancesurvey.co.uk/products/os-terrain-50
 - OS OpenData catalogue: https://www.ordnancesurvey.co.uk/products/open-data
 - OSNI 10 m / 50 m DTM information: https://www.nidirect.gov.uk/articles/10m-digital-terrain-model-height-data and https://www.nidirect.gov.uk/articles/50m-digital-terrain-model-height-data
