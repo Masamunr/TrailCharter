@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
@@ -57,6 +58,22 @@ interface AdventureDao {
 
     @Delete
     suspend fun deleteStage(stage: StageEntity)
+
+    @Query("DELETE FROM stages WHERE id = :stageId")
+    suspend fun deleteStageById(stageId: Long)
+
+    @Transaction
+    suspend fun savePlanningSession(
+        adventure: AdventureEntity,
+        stagesToUpdate: List<StageEntity>,
+        stageIdsToDelete: List<Long>,
+        stagesToInsert: List<StageEntity>,
+    ) {
+        updateAdventure(adventure)
+        stageIdsToDelete.forEach { deleteStageById(it) }
+        stagesToUpdate.forEach { updateStage(it) }
+        stagesToInsert.forEach { insertStage(it) }
+    }
 
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM itinerary_items WHERE adventureId = :adventureId")
     suspend fun nextItineraryPosition(adventureId: Long): Int
