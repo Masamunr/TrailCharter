@@ -16,6 +16,9 @@
 - **Android application identity:** namespace and application ID are both `com.masamunr.trailcharter`.
 - **Android SDK baseline:** `minSdk = 28`, `targetSdk = 36`, `compileSdk = 36`.
 - **Android build toolchain:** Android Gradle Plugin `8.13.2`, Gradle `8.13`, Kotlin `2.3.21`, JDK `17`, Kotlin DSL build scripts, and a Gradle version catalog (`libs.versions.toml`) for dependency/version management.
+- **Compose/UI foundation:** Jetpack Compose-first, Compose BOM `2026.06.00`, Material 3 as the interaction/accessibility foundation, single-activity architecture, edge-to-edge layouts, adaptive/responsive layouts from inception, accessibility-first components, and no ordinary XML screen layouts.
+- **TrailCharter design system:** TrailCharter owns its colours, typography, shapes and component styling. Seasonal palettes are controlled by TrailCharter; Android dynamic colour is not enabled by default. Optional system-colour support may be explored later.
+- **Navigation remains EXPLORE:** the Android foundation must keep navigation replaceable until the Adventure UX model is agreed.
 - TrailCharter continues the same project history previously discussed under Altrove and Adventure.
 - Android-first, privacy-first, offline-first where practical, open-source intended.
 - OpenStreetMap foundation.
@@ -36,6 +39,7 @@
 ## EXPLORE
 - Adventure IA
 - primary navigation model
+- optional Android system/dynamic colour mode
 - Organic Maps technical relationship
 - offline architecture
 - live-sharing architecture
