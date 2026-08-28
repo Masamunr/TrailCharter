@@ -6,6 +6,15 @@
 - Android application ID: `com.masamunr.trailcharter`
 - Android SDK baseline: `minSdk = 28`, `targetSdk = 36`, `compileSdk = 36`
 - Android build toolchain: Android Gradle Plugin `8.13.2`, Gradle `8.13`, Kotlin `2.3.21`, JDK `17`, Kotlin DSL build scripts, Gradle version catalog (`libs.versions.toml`)
+- Jetpack Compose-first UI using Compose BOM `2026.06.00`
+- Material 3 as the interaction/accessibility foundation, with TrailCharter-owned visual styling
+- Single-activity architecture
+- Edge-to-edge layouts from inception
+- Adaptive/responsive layouts from inception
+- Accessibility-first component design
+- No ordinary XML screen layouts for app UI
+- TrailCharter controls its seasonal palettes; Android dynamic colour is not enabled by default
+- Final navigation structure remains EXPLORE and must not be prematurely locked by the Android foundation
 - Android-first
 - Privacy-first
 - Offline-first wherever practical
@@ -27,6 +36,7 @@ Whenever TrailCharter accesses GPS, downloads data, stores information, connects
 ## EXPLORE
 - Exact adventure information architecture
 - Primary UX: timeline/map/cards/hybrid
+- Optional Android system/dynamic colour mode
 - Organic Maps reuse/integration/fork strategy
 - Offline map/routing architecture
 - Adventure Download packaging
