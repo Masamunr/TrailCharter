@@ -8,6 +8,7 @@ datastore = "1.2.1"
 room = "2.8.4"
 coroutines = "1.10.2"
 maplibreCompose = "0.14.0"
+maplibreAndroid = "13.0.2"
 junit = "4.13.2"
 
 [libraries]
@@ -23,6 +24,7 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 maplibre-compose = { module = "org.maplibre.compose:maplibre-compose", version.ref = "maplibreCompose" }
+maplibre-android-opengl = { module = "org.maplibre.gl:android-sdk-opengl", version.ref = "maplibreAndroid" }
 junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]
