@@ -47,21 +47,13 @@ jobs:
           echo "Verified APK SHA-256: $ACTUAL_SHA256"
           echo "Verified APK size: $ACTUAL_SIZE bytes"
 
-      - name: Publish public prerelease asset
+      - name: Upload to existing public spike prerelease
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: map-spike-run-79
-          TARGET_SHA: f21021b92949559791a1ec90f338969dcf63cc93
+          TAG: map-spike-run-75
         run: |
           set -euo pipefail
-          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --target "$TARGET_SHA" \
-              --title 'TrailCharter Map Spike Run 79' \
-              --notes 'EXPLORE/SPIKE build only. Corrective installability build: full Eryri z0-z12 terrain plus a controlled central Yr Wyddfa z13-z15 terrain test area, z15 vector basemap, compact 0°, 30° and 50° view presets, isolated .mapspike package at versionCode 12, and CI-verified network/location-silent permissions. Run 75 is superseded for device testing. Not production TrailCharter and not physically accepted yet.' \
-              --prerelease
-          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
           gh release upload "$TAG" TrailCharter-map-spike-run-79.apk \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
