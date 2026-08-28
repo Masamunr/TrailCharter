@@ -110,6 +110,14 @@ jobs:
           fi
           echo "Continuity debug signing certificate verified."
 
+      - name: Upload Room schemas
+        uses: actions/upload-artifact@v6
+        with:
+          name: trailcharter-room-schema-run-${{ github.run_number }}
+          path: app/schemas/**
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v6
         with:
