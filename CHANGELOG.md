@@ -23,4 +23,5 @@
 ### Android foundation
 - 2026-08-28: Agreed Android namespace and application ID: `com.masamunr.trailcharter`.
 - 2026-08-28: Agreed SDK baseline: `minSdk = 28`, `targetSdk = 36`, `compileSdk = 36`.
+- 2026-08-28: Agreed build toolchain: Android Gradle Plugin `8.13.2`, Gradle `8.13`, Kotlin `2.3.21`, JDK `17`, Kotlin DSL and Gradle version catalog.
 - Android implementation is authorised but no production application code has been built yet.
