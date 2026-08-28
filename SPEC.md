@@ -2,6 +2,8 @@
 
 ## AGREE
 - Product name: **TrailCharter** (AGREE, not yet FINAL)
+- Android namespace: `com.masamunr.trailcharter`
+- Android application ID: `com.masamunr.trailcharter`
 - Android-first
 - Privacy-first
 - Offline-first wherever practical
