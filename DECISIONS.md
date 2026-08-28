@@ -13,6 +13,9 @@
 
 ## AGREE
 - **TrailCharter is the current agreed product name.** It remains AGREE rather than FINAL until deliberately locked for public/release identity.
+- **Current geographic scope:** TrailCharter's current product and release scope is the United Kingdom only: England, Scotland, Wales and Northern Ireland. Crown Dependencies and other countries are outside the current scope. Expansion beyond the UK may be reconsidered later.
+- **Current live-sharing scope:** live location sharing is not part of the current product/release scope and will not be implemented in the present development plan. Location tracking remains local to the device. Live sharing may only be reconsidered in a later scope review.
+- **Zero-owned-server architecture:** core TrailCharter functionality must not depend on servers owned or administered by the project. Core data and computation remain device-resident. External services may be used only where a feature inherently requires public/external data or distribution, and those dependencies should be isolated and replaceable.
 - **Android application identity:** namespace and application ID are both `com.masamunr.trailcharter`.
 - **Android SDK baseline:** `minSdk = 28`, `targetSdk = 36`, `compileSdk = 36`.
 - **Android build toolchain:** Android Gradle Plugin `8.13.2`, Gradle `8.13`, Kotlin `2.3.21`, JDK `17`, Kotlin DSL build scripts, and a Gradle version catalog (`libs.versions.toml`) for dependency/version management.
@@ -24,7 +27,7 @@
 - **Database generation/migrations:** use KSP for generated database code; maintain explicit versioned Room migrations from the beginning; destructive production migrations are not permitted.
 - **Local authority:** personal/core Adventure data is stored locally as the authoritative copy and core functionality must not depend on a cloud/backend service.
 - **Secrets:** credentials or cryptographic key material, if later required, use Android Keystore-backed handling rather than ordinary preferences/database fields.
-- **Offline-by-default networking:** TrailCharter's default operational state is offline. The initial application should not declare `INTERNET` permission. When network-dependent features are later introduced, network access must remain gated behind a defined TrailCharter network layer and user action/explicit enablement; no background connection merely because the app is open.
+- **Network-silent by default:** opening and using core TrailCharter functionality must not create network activity by default. The initial application should not declare `INTERNET` permission. When network-dependent features are later introduced, network access must remain behind a defined TrailCharter network layer and occur only for clear user-initiated or explicitly enabled functions. Merely opening the app must not create background connections.
 - **Network privacy:** no advertising, analytics, telemetry or third-party tracking SDKs; no silent uploads. When networking is introduced, cleartext HTTP is disabled and ordinary network traffic uses secure transport.
 - **Local-only backup:** TrailCharter does not provide or depend on a TrailCharter cloud backup service and automatic cloud backup of personal/core data is disabled/excluded as far as the Android platform permits.
 - **User-controlled backup/export:** backup files are created locally and explicitly by the user. Through Android's system document picker/Storage Access Framework, the user may save or copy that local backup to any destination/provider they already control, including personal services such as Proton Drive or OneDrive where exposed by Android. TrailCharter does not require a TrailCharter account or direct cloud integration for this.
@@ -35,9 +38,7 @@
 - OpenStreetMap foundation.
 - Organic Maps may be reused/integrated but TrailCharter must retain its own identity.
 - No core account, ads, default telemetry or silent uploads.
-- Location stays on-device unless explicitly shared.
 - Transparency by Design.
-- Live location sharing agreed in principle.
 - GitHub is the authoritative source of truth.
 - Android implementation is now open as a controlled, iterative foundation-development phase alongside continued product and architecture design.
 - Foundation implementation must not prematurely lock unresolved EXPLORE decisions into the product or architecture.
@@ -45,6 +46,7 @@
 
 ## SUPERSEDED / REJECTED
 - Previous AGREE direction: "No implementation until vision and architecture are sufficiently understood." Superseded on 2026-08-27 by the controlled-foundation implementation decision.
+- Previous AGREE direction: live location sharing as an in-principle product capability. Superseded on 2026-08-28 by the decision to remove live location sharing from the current product/release scope.
 - **Altrove as the product name is rejected/superseded** after clearance identified a directly adjacent active travel-planning app using the name. The repository remains `Masamunr/altrove` for continuity until a later deliberate repository rename.
 
 ## EXPLORE
@@ -54,9 +56,10 @@
 - enhanced application-level encryption/threat model beyond normal Android app sandbox/device encryption
 - exact TrailCharter backup archive format and optional user-controlled backup encryption
 - Organic Maps technical relationship
-- offline architecture
-- live-sharing architecture
+- UK offline map architecture and package/distribution approach
 - safety tools
 - pack/food/water models
 - journal model
-- V1 scope
+- exact V1 feature scope within the UK boundary
+- future expansion beyond the UK
+- possible future reconsideration of live location sharing outside the current scope
