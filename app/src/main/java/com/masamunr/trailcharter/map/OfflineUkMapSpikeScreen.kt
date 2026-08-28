@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,6 +34,7 @@ import kotlinx.coroutines.withContext
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
@@ -85,6 +88,7 @@ internal fun OfflineUkMapSpikeScreen() {
 private fun OfflineEryriMap(packages: OfflineMapPackages) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var currentMapView by remember { mutableStateOf<MapView?>(null) }
+    var currentMap by remember { mutableStateOf<MapLibreMap?>(null) }
     var status by remember { mutableStateOf("Starting offline renderer…") }
 
     DisposableEffect(lifecycle, currentMapView) {
@@ -120,11 +124,12 @@ private fun OfflineEryriMap(packages: OfflineMapPackages) {
                     currentMapView = mapView
                     status = "Loading embedded map + relief…"
                     mapView.getMapAsync { map ->
+                        currentMap = map
                         status = "Renderer ready; loading local style…"
                         map.setStyle(
                             Style.Builder().fromJson(offlineEryriStyle(packages)),
                         ) {
-                            map.setMaxZoomPreference(16.0)
+                            map.setMaxZoomPreference(17.0)
                             map.cameraPosition = CameraPosition.Builder()
                                 .target(LatLng(53.0685, -4.0760))
                                 .zoom(11.4)
@@ -151,7 +156,7 @@ private fun OfflineEryriMap(packages: OfflineMapPackages) {
                 Text("TrailCharter offline UK map spike", style = MaterialTheme.typography.titleSmall)
                 Text(status, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    "Eryri • offline paths/roads/water + local hillshade",
+                    "Eryri • z15 paths/roads/terrain + local hillshade",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Text(
@@ -161,7 +166,48 @@ private fun OfflineEryriMap(packages: OfflineMapPackages) {
                 )
             }
         }
+
+        currentMap?.let { map ->
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(12.dp),
+                shape = MaterialTheme.shapes.medium,
+                tonalElevation = 4.dp,
+            ) {
+                Column(
+                    modifier = Modifier.padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text("View", style = MaterialTheme.typography.labelMedium)
+                    FilledTonalButton(onClick = { applyViewPreset(map, tilt = 0.0) }) {
+                        Text("Flat")
+                    }
+                    FilledTonalButton(onClick = { applyViewPreset(map, tilt = 30.0) }) {
+                        Text("Low")
+                    }
+                    FilledTonalButton(onClick = { applyViewPreset(map, tilt = 50.0) }) {
+                        Text("Terrain")
+                    }
+                    FilledTonalButton(onClick = { applyViewPreset(map, tilt = 0.0, resetNorth = true) }) {
+                        Text("Reset")
+                    }
+                }
+            }
+        }
     }
+}
+
+private fun applyViewPreset(map: MapLibreMap, tilt: Double, resetNorth: Boolean = false) {
+    val current = map.cameraPosition
+    map.cameraPosition = CameraPosition.Builder()
+        .target(current.target)
+        .zoom(current.zoom)
+        .tilt(tilt)
+        .bearing(if (resetNorth) 0.0 else current.bearing)
+        .build()
 }
 
 @Composable
@@ -229,7 +275,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
             "basemap": {
               "type": "vector",
               "url": "pmtiles://file://$basemapPath",
-              "maxzoom": 14,
+              "maxzoom": 15,
               "attribution": "© OpenStreetMap contributors / Protomaps"
             },
             "terrain": {
@@ -237,7 +283,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "url": "pmtiles://file://$terrainPath",
               "tileSize": 512,
               "encoding": "terrarium",
-              "maxzoom": 12,
+              "maxzoom": 15,
               "attribution": "© Mapterhorn data sources"
             }
           },
@@ -310,10 +356,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "filter": [
                 "all",
                 ["==", ["geometry-type"], "LineString"],
-                [
-                  "match", ["get", "kind_detail"],
-                  ["river", "canal"], true, false
-                ]
+                ["match", ["get", "kind_detail"], ["river", "canal"], true, false]
               ],
               "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
@@ -331,10 +374,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "filter": [
                 "all",
                 ["==", ["geometry-type"], "LineString"],
-                [
-                  "match", ["get", "kind_detail"],
-                  ["stream", "ditch", "drain"], true, false
-                ]
+                ["match", ["get", "kind_detail"], ["stream", "ditch", "drain"], true, false]
               ],
               "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
@@ -356,10 +396,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "type": "line",
               "source": "basemap",
               "source-layer": "roads",
-              "filter": [
-                "match", ["get", "kind"],
-                ["highway", "major_road"], true, false
-              ],
+              "filter": ["match", ["get", "kind"], ["highway", "major_road"], true, false],
               "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
                 "line-color": "#A99985",
@@ -373,10 +410,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "source": "basemap",
               "source-layer": "roads",
               "minzoom": 10,
-              "filter": [
-                "match", ["get", "kind"],
-                ["minor_road"], true, false
-              ],
+              "filter": ["match", ["get", "kind"], ["minor_road"], true, false],
               "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
                 "line-color": "#B8AA98",
@@ -392,20 +426,8 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "minzoom": 11,
               "filter": [
                 "all",
-                [
-                  "!", [
-                    "match", ["get", "kind"],
-                    ["highway", "major_road", "minor_road", "path", "rail", "aerialway", "ferry"],
-                    true, false
-                  ]
-                ],
-                [
-                  "!", [
-                    "match", ["get", "kind_detail"],
-                    ["track", "path", "cycleway", "bridleway", "steps", "sidewalk", "crossing"],
-                    true, false
-                  ]
-                ]
+                ["!", ["match", ["get", "kind"], ["highway", "major_road", "minor_road", "path", "rail", "aerialway", "ferry"], true, false]],
+                ["!", ["match", ["get", "kind_detail"], ["track", "path", "cycleway", "bridleway", "steps", "sidewalk", "crossing"], true, false]]
               ],
               "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
@@ -435,11 +457,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "source": "basemap",
               "source-layer": "roads",
               "minzoom": 11,
-              "filter": [
-                "match", ["get", "kind_detail"],
-                ["path", "cycleway", "bridleway", "steps", "sidewalk", "crossing"],
-                true, false
-              ],
+              "filter": ["match", ["get", "kind_detail"], ["path", "cycleway", "bridleway", "steps", "sidewalk", "crossing"], true, false],
               "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
                 "line-color": "#7F5F49",
