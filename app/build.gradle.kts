@@ -65,6 +65,10 @@ android {
 
     buildTypes {
         debug {
+            // This draft branch is a technical spike. Keep it installable beside the real
+            // TrailCharter alpha so physical renderer testing cannot touch Adventure data.
+            applicationIdSuffix = ".mapspike"
+            versionNameSuffix = "-mapspike"
             if (ciSigningConfigured) signingConfig = signingConfigs.getByName("continuityDebug")
         }
         release {
