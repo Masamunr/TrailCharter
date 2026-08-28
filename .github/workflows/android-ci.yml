@@ -92,17 +92,28 @@ jobs:
       - name: Unit tests, lint and debug build
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace --no-daemon
 
-      - name: Verify network-silent APK permissions
+      - name: Verify privacy-baseline APK permissions
         run: |
           APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
           test -n "$APK_PATH"
           PERMISSIONS=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$APK_PATH")
           printf '%s\n' "$PERMISSIONS"
-          if grep -q 'android.permission.INTERNET' <<< "$PERMISSIONS"; then
-            echo "Unexpected INTERNET permission in final merged APK." >&2
-            exit 1
-          fi
-          echo "Final APK has no INTERNET permission."
+
+          FORBIDDEN_PERMISSIONS=(
+            android.permission.INTERNET
+            android.permission.ACCESS_NETWORK_STATE
+            android.permission.ACCESS_WIFI_STATE
+            android.permission.ACCESS_COARSE_LOCATION
+            android.permission.ACCESS_FINE_LOCATION
+          )
+
+          for permission in "${FORBIDDEN_PERMISSIONS[@]}"; do
+            if grep -q "$permission" <<< "$PERMISSIONS"; then
+              echo "Unexpected permission in final merged APK: $permission" >&2
+              exit 1
+            fi
+          done
+          echo "Final APK preserves the current network/location-silent permission baseline."
 
       - name: Verify continuity signing certificate
         env:
