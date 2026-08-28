@@ -19,6 +19,7 @@ val prepareLauncherIcon by tasks.registering {
         val mipmapDir = generatedLauncherResDir.get().dir("mipmap-xxxhdpi").asFile
         mipmapDir.mkdirs()
         mipmapDir.resolve("ic_launcher.webp").writeBytes(artwork)
+        mipmapDir.resolve("ic_launcher_round.webp").writeBytes(artwork)
         mipmapDir.resolve("ic_launcher_foreground.webp").writeBytes(artwork)
     }
 }
