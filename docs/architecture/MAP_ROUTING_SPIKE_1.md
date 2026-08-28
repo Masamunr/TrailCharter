@@ -14,6 +14,9 @@ Purpose: prove that TrailCharter can keep Adventure data, map rendering, offline
 - The current MapLibre style-spec support table does **not** show 3D terrain extrusion as supported by MapLibre Native Android. Near-term TrailCharter topo expectations should therefore be contours + shaded relief rather than 3D terrain until that changes or another renderer is selected.
 - MapLibre Native is BSD-2-Clause; MapLibre Compose is a maintained Compose wrapper published through Maven Central.
 - **Important privacy finding:** the MapLibre Native Android library manifest contributes `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `ACCESS_COARSE_LOCATION` and `ACCESS_FINE_LOCATION` permissions by default. TrailCharter's offline spike explicitly removes all five during manifest merge. The CI spike checks the final APK, not merely TrailCharter's source manifest, so a transitive dependency cannot silently widen the current privacy baseline.
+- MapLibre Compose 0.14 uses the Vulkan-backed Android SDK by default. The first physical-device Map Spike build (`run #55`) crashed immediately on opening the map surface. This is consistent with current upstream MapLibre Vulkan crash reports on some Android devices, including Android 16.
+- The controlled retest changes **only the rendering backend** to MapLibre Android OpenGL ES using the documented compatibility setup: exclude `org.maplibre.gl:android-sdk` and add `org.maplibre.gl:android-sdk-opengl:13.0.2`. The PMTiles fixture, map style, activity and privacy configuration are otherwise unchanged.
+- CI `run #57` passes with the OpenGL backend, including tests, lint, final-APK privacy permission verification, signing verification, Room schema upload and APK assembly. Physical-device OpenGL retest remains pending.
 
 ### BRouter
 
@@ -42,12 +45,13 @@ Purpose: prove that TrailCharter can keep Adventure data, map rendering, offline
 
 ## Spike code boundary
 
-This branch introduces engine-neutral contracts and a renderer compile proof:
+This branch introduces engine-neutral contracts and a renderer proof:
 
 - `geo/GeoModels.kt`: coordinates, bounds and route geometry.
 - `map/MapContracts.kt`: renderer capabilities and app-managed offline-package boundary.
 - `routing/RoutingContracts.kt`: magnetic/direct route requests, travel modes, route estimates, snapped waypoints and a replaceable routing-engine interface.
-- `map/MapLibreRendererCompileProbe.kt`: compile-only proof that current MapLibre Compose can be linked into the TrailCharter Android baseline. Its current style and route geometry are entirely inline/local, so the probe has no tile/style/network dependency. It is not exposed in the app UI.
+- The Map Spike uses a tiny deterministic app-managed PMTiles fixture and an entirely local style, with no map/style/tile networking.
+- The Map Spike installs beside normal TrailCharter under a separate application ID and launches a dedicated spike Activity.
 - CI checks the **final APK permissions** and rejects network/location permissions at the current stage.
 
 Room schema is unchanged. No production renderer/routing engine is selected.
@@ -55,19 +59,19 @@ Room schema is unchanged. No production renderer/routing engine is selected.
 ## Current technical interpretation
 
 1. **MapLibre remains the leading rendering candidate** because local single-file PMTiles, vector styling, raster imagery and raster-DEM hillshade all fit TrailCharter's modular requirements.
-2. MapLibre's transitive permissions are not a blocker because Android manifest merging allows TrailCharter to remove them, but the final-APK permission check must remain a hard CI guard until individual permissions are deliberately introduced.
-3. **BRouter remains the lower-complexity routing candidate at runtime** for an outdoor-first implementation, but its build/distribution path needs a deliberate source-module or package strategy.
-4. **Valhalla remains the richer routing candidate** where robust map matching, mixed travel modes and possible future traffic integration carry more weight, with a larger native integration and version-compatibility surface.
-5. Map rendering and routing should remain separate interfaces regardless of the eventual engine choices.
-6. Aerial imagery is technically straightforward at renderer level but provider licensing, attribution, caching and offline rights are the real constraints.
-7. Live traffic can potentially use regional public/open feeds without transmitting continuous device location, but coverage and provider terms require a separate investigation.
+2. Vulkan is **not accepted as the TrailCharter baseline** on current evidence because the first physical-device spike crashed at map startup. OpenGL is now the controlled compatibility retest path.
+3. MapLibre's transitive permissions are not a blocker because Android manifest merging allows TrailCharter to remove them, but the final-APK permission check must remain a hard CI guard until individual permissions are deliberately introduced.
+4. **BRouter remains the lower-complexity routing candidate at runtime** for an outdoor-first implementation, but its build/distribution path needs a deliberate source-module or package strategy.
+5. **Valhalla remains the richer routing candidate** where robust map matching, mixed travel modes and possible future traffic integration carry more weight, with a larger native integration and version-compatibility surface.
+6. Map rendering and routing should remain separate interfaces regardless of the eventual engine choices.
+7. Aerial imagery is technically straightforward at renderer level but provider licensing, attribution, caching and offline rights are the real constraints.
+8. Live traffic can potentially use regional public/open feeds without transmitting continuous device location, but coverage and provider terms require a separate investigation.
 
 ## Next evidence required
 
-- Pass CI with MapLibre linked while preserving the no-network/no-location final APK permission baseline.
-- Measure debug APK size impact of the renderer dependency.
-- Load a small local PMTiles test package from app-managed storage.
-- Test local raster-DEM hillshade in that proof.
+- Physically retest the identical local-PMTiles spike with the OpenGL backend from CI `run #57`.
+- If OpenGL is stable, proceed to representative UK vector data and local raster-DEM hillshade.
+- Measure APK/package size impact of the renderer dependency.
 - Separately prototype BRouter and valhalla-mobile behind `RoutingEngineBoundary` using representative UK walking routes.
 - Compare route quality, waypoint snapping, recalculation, distance/elevation/ETA, memory and calculation time.
 - Compare integration/reproducibility burden as well as runtime performance.
