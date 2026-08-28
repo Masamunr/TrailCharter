@@ -93,6 +93,22 @@ Physical testing of `0.2.1-alpha1` confirmed that a separate Progress/milestone 
 
 This refinement was merged through PR #10 as `0.2.2-alpha1` / versionCode 10 at merge commit `080b19a907490c1fdaf42423f4376167a192b091`. Post-merge Android CI run #36 (`33197950163`) passed unit tests, lint, debug assembly, continuity-signing certificate verification, Room-schema export and artifact upload.
 
+## Planning-session save and date-range refinement
+
+Status: **AGREE / IMPLEMENTATION IN PROGRESS**
+
+Physical testing of `0.2.2-alpha1` produced two further simplifications:
+
+- Start and end dates are presented as two compact adjacent fields rather than separate multi-row controls.
+- Both dates are selected from one date-range calendar picker. UK `dd/MM/yyyy` display remains authoritative.
+- Adventure planning sessions use **explicit save**, not background persistence of edits. Detail changes, Stage additions/removals and Stage completion changes remain local to the active planning session until the user saves.
+- `Save adventure` commits the planning session and returns to the Adventures list. `Save & new adventure` commits it and starts another Adventure.
+- If the user backs out of a planning session with unsaved changes, TrailCharter asks whether to **Save**, **Don't save**, or **Cancel** the exit.
+- Saving the planning session is performed atomically at the repository/Room boundary so the Adventure and its Stage changes are committed together.
+- This refinement does **not** require a Room schema change; schema version 2 remains current.
+
+The earlier `0.2.1-alpha1` behaviour where some Stage edits were stored immediately is superseded by this explicit-save planning-session model.
+
 ## Map-planned Stages and routing
 
 Status: **EXPLORE**
