@@ -28,21 +28,22 @@ The same model must support both a simple Adventure such as `Walk Cadair Idris` 
 
 Status: **AGREE**
 
-TrailCharter will support progress/completion against relevant Adventure items, including location-linked milestones such as reaching a Place or waypoint.
+Progress is integrated into the planned Adventure structure rather than maintained as a separate user-facing checklist.
 
-- **Manual completion is always available.** The user can tick an applicable milestone/item as achieved and can undo that completion.
-- **Automatic location-based completion is optional.** When enabled, TrailCharter may mark a location-linked milestone as reached when active device-location information shows the user has entered the accepted arrival area around that Place.
-- The user can choose their preferred behaviour in Settings. Initial modes are:
-  - **Manual** — user explicitly marks milestones complete.
-  - **Automatic when location is active** — eligible location-linked milestones may be completed from active TrailCharter location information.
+- **Stage is the primary progress unit** for staged Adventures. A planned Stage can be manually ticked complete and unticked again.
+- The Adventure progress bar is derived directly from completed Stages divided by total Stages.
+- A separate Progress/milestone-entry section is not required merely to duplicate the Stage plan.
+- Itinerary items remain a distinct planning concept for future detailed itinerary information, but they do not drive the main Adventure progress bar simply by existing.
+- **Manual completion is always available.**
+- **Automatic location-based completion remains optional future behaviour.** When enabled, TrailCharter may mark an eligible Stage/location as reached from active device-location information.
 - **Manual is the default.** Automatic completion requires explicit user choice and the relevant location permission/state.
 - Automatic completion does **not** by itself authorise background location tracking. Existing least-privilege permission rules and the separate background-location decision remain authoritative.
 - A user must be able to correct/undo an automatic completion.
-- Completion should be recorded as user-owned Adventure state rather than inferred afresh every time the screen opens.
+- Completion is stored as user-owned Adventure state rather than inferred afresh every time the screen opens.
 
 ## First playable vertical slice
 
-Status: **AGREE / IMPLEMENTED / PHYSICAL TEST PENDING**
+Status: **AGREE / IMPLEMENTED / PHYSICAL TESTING ACTIVE**
 
 The first physical-device Adventure alpha intentionally implements only the minimum coherent subset needed to exercise the model:
 
@@ -50,20 +51,19 @@ The first physical-device Adventure alpha intentionally implements only the mini
 - Create Adventure with title required and summary/dates optional.
 - Edit and delete an Adventure.
 - Optional ordered Stages.
-- Basic ordered Itinerary items/milestones, optionally associated with a Stage.
-- Manual completion and undo.
+- Local completion/progress state.
 - Adventure progress summary derived from persisted completion state.
-- Local Room persistence with schema version 1.
+- Local Room persistence.
 - In-place upgrade continuity through the established development signing identity.
 - Android system Back handling within the first-pass Adventure flow.
 
 This slice is not the final IA or visual design. It exists to put the agreed product model onto a physical phone early and gather evidence before larger modules are built.
 
-Implementation was merged through PR #8 as `0.2.0-alpha1` / versionCode 8 at merge commit `f2ae96614f21e6970e164be2704e3097b7a88e5c`. Post-merge Android CI run #31 (`33194533139`) passed unit tests, lint, debug assembly, continuity-signing certificate verification, Room-schema export and artifact upload.
+Implementation began through PR #8 as `0.2.0-alpha1` / versionCode 8 at merge commit `f2ae96614f21e6970e164be2704e3097b7a88e5c`. Post-merge Android CI run #31 (`33194533139`) passed unit tests, lint, debug assembly, continuity-signing certificate verification, Room-schema export and artifact upload.
 
-Room schema version 1 is committed at `app/schemas/com.masamunr.trailcharter.data.adventure.TrailCharterDatabase/1.json`. CI also exports generated Room schemas so future schema changes can be compared against the compiler-produced migration baseline.
+Room schema version 1 is committed at `app/schemas/com.masamunr.trailcharter.data.adventure.TrailCharterDatabase/1.json`. CI exports generated Room schemas so future schema changes can be compared against compiler-produced migration baselines.
 
-The first schema deliberately does **not** introduce Places, Routes, accommodation/arrangements, pack, food/water, safety, notes, journal, GPX or map-package tables before those details are sufficiently agreed.
+The early schema deliberately does **not** introduce Places, Routes, accommodation/arrangements, pack, food/water, safety, notes, journal, GPX or map-package tables before those details are sufficiently agreed.
 
 ## First physical-device feedback
 
@@ -74,10 +74,22 @@ The first `0.2.0-alpha1` device pass produced these concrete corrections, implem
 - Adventure dates use UK display order `dd/MM/yyyy` throughout the app.
 - Date selection uses a calendar picker rather than requiring typed ISO/US-style input.
 - Long Stage/milestone entry screens remain scrollable above the software keyboard using IME insets and bottom scroll clearance so input controls cannot become trapped behind the keyboard.
-- Adventure planning has an explicit finish/save path. `Save adventure` returns to the Adventures list and `Save & new adventure` starts another Adventure immediately. Stages and milestones remain locally persisted as they are added.
+- Adventure planning has an explicit finish/save path. `Save adventure` returns to the Adventures list and `Save & new adventure` starts another Adventure immediately.
 - Unit tests lock UK date ordering and calendar date round-trip behaviour.
 
-These fixes were merged through PR #9 at merge commit `62dba4df7be7615be073e7538cea1643940f2367`. Post-merge Android CI run #33 (`33196188717`) passed unit tests, lint, debug assembly, continuity-signing certificate verification, Room-schema export and artifact upload. Physical-device retest remains required before these corrections are treated as accepted.
+These fixes were merged through PR #9 at merge commit `62dba4df7be7615be073e7538cea1643940f2367`. Post-merge Android CI run #33 (`33196188717`) passed unit tests, lint, debug assembly, continuity-signing certificate verification, Room-schema export and artifact upload.
+
+## Stage-integrated progress refinement
+
+Status: **AGREE / IMPLEMENTATION IN PROGRESS**
+
+Physical testing of `0.2.1-alpha1` confirmed that a separate Progress/milestone section unnecessarily duplicated the Stage plan.
+
+- Each Stage carries its own completion state and is ticked directly when achieved.
+- The progress bar uses completed Stages / total Stages both inside the Adventure and on the Adventures home card.
+- The separate user-facing Progress/milestone-entry UI is removed from this first-pass flow.
+- Existing alpha itinerary/milestone database rows are preserved rather than destructively deleted. They no longer drive the visible progress model and remain available for future itinerary-model work.
+- Room schema version 2 adds Stage completion state through an explicit versioned migration from schema 1; destructive migration remains prohibited.
 
 ## Map-planned Stages and routing
 
@@ -95,9 +107,9 @@ The intended product direction is for Stages to become spatially plannable rathe
 
 - Exact arrival-radius/tolerance rules for automatic completion.
 - Whether automatic completion should require dwell time or other anti-false-positive logic.
-- Visual treatment of completed stages, itinerary items, places and overall Adventure progress.
-- Whether non-location itinerary events can support other automatic completion triggers.
+- Visual treatment of completed Stages, Places and overall Adventure progress.
+- Whether non-location events can support other automatic completion triggers.
 - Exact Adventure status/lifecycle values.
 - Exact primary navigation and final screen structure.
-- Detailed Place, Route, arrangement, pack, food/water, safety, note, journal and attachment models.
-- Future Room schema changes for those concepts. All changes after schema version 1 require explicit versioned migrations; destructive production migration remains prohibited.
+- Detailed Place, Route, arrangement, itinerary, pack, food/water, safety, note, journal and attachment models.
+- Future Room schema changes for those concepts. All changes after schema version 2 require explicit versioned migrations; destructive production migration remains prohibited.
