@@ -25,7 +25,7 @@ This note records physical acceptance of the corrective Cartography Pass 2 build
 6. Increase genuine close-up terrain detail by adding **native z16 Mapterhorn terrain only over a tighter central walking/summit test area**, while retaining:
    - full Eryri terrain through z12;
    - the existing controlled central terrain through z15;
-   - the existing package-size and final-APK size gates.
+   - explicit package-size measurement and a generous spike-only safety ceiling.
 7. Add **real vector contours** to the Eryri spike in this pass rather than leaving them as a later research item:
    - use OS Terrain 50 contour data for the Great Britain prototype;
    - preserve the native 10 m contour interval;
@@ -44,6 +44,24 @@ This note records physical acceptance of the corrective Cartography Pass 2 build
 
 Run #79 demonstrates that simply increasing raster elevation resolution has diminishing value if the map still lacks explicit topographic structure. Hillshade is excellent for intuitive shape, but contours provide deterministic slope/height information and make ridges, cols, bowls and steepness legible at the exact scales used for walking route planning. The next test therefore needs to judge the combined effect of **higher-resolution DEM + hillshade + real contours**, not DEM resolution in isolation.
 
+## Final embedded-package comparison
+
+Pass 3 is deliberately the **last map-quality experiment in which the heavyweight regional map data is embedded inside the test APK**.
+
+The user wants to see the combined visual impact of z16 relief, real contours and the revised camera control before changing the development plumbing. Therefore APK/map-package size remains measured and bounded in CI, but the previous tight Run #79 limits must not dictate the visual experiment. Pass 3 uses generous safety ceilings intended only to catch an accidental runaway package; they are not production size targets and do not constitute a decision to ship maps inside the application package.
+
+After Pass 3 physical testing, AGREE to move heavyweight cartographic preparation onto the user's PC and separate the application from regional offline map packages. The intended next technical direction is:
+
+- keep TrailCharter itself comparatively small;
+- generate/clip/package basemap, terrain, contours and later walking-detail layers on the PC;
+- transfer/import regional packages to the phone explicitly;
+- validate and store imported packages locally in TrailCharter-managed storage;
+- keep packages independently replaceable and measurable;
+- continue to test runtime storage, import time, RAM/GPU use and pan/zoom performance on the physical Android device;
+- preserve all existing privacy/offline decisions: no TrailCharter server, no account, no automatic/background network activity, and no new runtime network permission merely to obtain map data.
+
+This sequencing prevents APK delivery constraints from prematurely deciding cartographic quality while retaining device performance and practical storage as real engineering constraints.
+
 ## Acceptance for this pass
 
 - Run #79 remains the accepted physical baseline and is not regressed.
@@ -57,7 +75,7 @@ Run #79 demonstrates that simply increasing raster elevation resolution has dimi
 - Index contours and elevation labels are distinguishable but subordinate to route/path information.
 - Contours remain correctly aligned with the rendered terrain and map features at all tested zooms.
 - Outside the z16 test area, the transition back to the z15/z12 hierarchy is stable and does not produce blank relief or corruption.
-- Terrain, contour and APK sizes are measured explicitly and remain inside practical spike limits; if not, CI fails rather than producing another oversized physical-test APK.
+- Terrain, contour and APK sizes are measured explicitly and remain inside the generous Pass 3 safety bounds; exceeding them fails CI and prompts investigation rather than automatic quality reduction.
 - Final APK remains network/location silent.
 
 ## Data-source boundary
