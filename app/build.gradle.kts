@@ -52,8 +52,8 @@ android {
         applicationId = "com.masamunr.trailcharter"
         minSdk = 28
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.1.4-foundation"
+        versionCode = 6
+        versionName = "0.1.5-foundation"
     }
 
     sourceSets {
