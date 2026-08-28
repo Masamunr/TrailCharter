@@ -95,7 +95,7 @@ This refinement was merged through PR #10 as `0.2.2-alpha1` / versionCode 10 at 
 
 ## Planning-session save and date-range refinement
 
-Status: **AGREE / IMPLEMENTATION IN PROGRESS**
+Status: **AGREE / IMPLEMENTED / PHYSICAL RETEST PENDING**
 
 Physical testing of `0.2.2-alpha1` produced two further simplifications:
 
@@ -108,6 +108,8 @@ Physical testing of `0.2.2-alpha1` produced two further simplifications:
 - This refinement does **not** require a Room schema change; schema version 2 remains current.
 
 The earlier `0.2.1-alpha1` behaviour where some Stage edits were stored immediately is superseded by this explicit-save planning-session model.
+
+This refinement was merged through PR #11 as `0.2.3-alpha1` / versionCode 11 at merge commit `225ba441f42dc7c8426770af1f500cdd4782f69a`. Post-merge Android CI run #38 (`33199229254`) passed unit tests, lint, debug assembly, continuity-signing certificate verification, Room-schema export and artifact upload.
 
 ## Map-planned Stages and routing
 
