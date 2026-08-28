@@ -17,7 +17,7 @@
 - Define privacy architecture
 
 ## Phase 1 — Android Foundation — OPEN
-Implementation may now proceed incrementally while unresolved product and architecture questions remain EXPLORE.
+Implementation may proceed incrementally while unresolved product and architecture questions remain EXPLORE.
 
 Foundation decisions completed:
 - package/application identity: `com.masamunr.trailcharter`
@@ -30,14 +30,23 @@ Foundation decisions completed:
 - permissions/privacy status: contextual least privilege, Photo Picker/Storage Access Framework preferred, background location deferred, clear location-tracking On/Off status
 - geographic/product boundary: UK only for current release planning; live location sharing excluded; zero-owned-server architecture for core functionality
 - CI/build pipeline: GitHub Actions on Android/build-file changes, JDK 17, Gradle Wrapper, `testDebugUnitTest` + `lintDebug` + `assembleDebug`, debug APK artifact upload, wrapper validation/caching via the official Gradle action, no release signing or automatic Play publication
+- Android project scaffold: Compose single-activity shell, provisional Privacy Status screen, DataStore seam, backup exclusions, cleartext-network blocking and verified Gradle 8.13 wrapper
+- first CI-verified debug APK: completed on 2026-08-28 and reconfirmed on `main`
 
 Remaining initial foundation scope:
-- create the Android project scaffold and achieve the first successful CI-verified debug APK
-- branding/theme implementation
+- branding/theme implementation using the approved asset when available
+- add Room/repository implementation when the first structured Adventure model is ready
 - exact backup archive format and optional user-controlled backup encryption
 - replaceable architectural seams for unresolved UK map/routing choices
 
 Do not prematurely implement complex mapping/routing architecture before the relevant EXPLORE decisions mature.
+
+## Next product/technical priorities
+1. Preserve the exact FINAL launcher icon reference asset in GitHub.
+2. Define the Adventure information model and main UX/navigation model.
+3. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
+4. Investigate UK map/offline architecture and package distribution within the zero-owned-server constraint.
+5. Turn the foundation shell into the first useful Adventure vertical slice once the information model is agreed.
 
 ## Later / progressive capability phases within current UK scope
 - UK map foundation
