@@ -8,6 +8,13 @@
 
 The name is agreed for current development and branding work but is not yet FINAL. The existing repository path `Masamunr/altrove` is retained for continuity until a later deliberate rename decision.
 
+## Current product boundary
+- Geographic scope: **United Kingdom only** — England, Scotland, Wales and Northern Ireland
+- Crown Dependencies and other countries: outside current scope
+- Live location sharing: **not in current product/release scope**
+- Core architecture: **no servers owned or administered by the TrailCharter project required for core functionality**
+- Status: **AGREE**
+
 ## Android application identity
 - Namespace: `com.masamunr.trailcharter`
 - Application ID: `com.masamunr.trailcharter`
@@ -57,9 +64,10 @@ The UI foundation does not lock TrailCharter into stock Material appearance. Mat
 - Status: **AGREE**
 
 ## Privacy / network / backup foundation
-- Default operational state is offline
+- TrailCharter is **network-silent by default**
 - Initial application does not declare `INTERNET` permission
-- If networking is introduced later, it is centralised behind a TrailCharter network boundary and used only for explicit/user-enabled features rather than background connection by default
+- When network-dependent features arrive, access is centralised behind a TrailCharter network boundary and occurs only for clear user-initiated or explicitly enabled functions
+- Merely opening/using core TrailCharter functionality must not create background connections
 - No advertising, analytics, telemetry, tracking SDKs or silent uploads
 - Ordinary future networking uses secure transport with cleartext HTTP disabled
 - No TrailCharter cloud backup service
@@ -84,12 +92,15 @@ No production Android application has been implemented yet.
 - Vision established.
 - Decisions classified into EXPLORE / AGREE / FINAL.
 - TrailCharter selected as the current agreed product name following deeper collision/clearance checks.
+- Current product/release geography narrowed to the United Kingdom only.
+- Live location sharing removed from the current product/release scope.
+- Zero-owned-server architecture agreed for core TrailCharter functionality.
 - Android package/application identity agreed as `com.masamunr.trailcharter`.
 - Android SDK baseline agreed as API 28 minimum and API 36 target/compile.
 - Android build toolchain agreed as AGP 8.13.2 / Gradle 8.13 / Kotlin 2.3.21 / JDK 17 with Kotlin DSL and version catalog.
 - Compose-first, Material 3-backed UI foundation agreed while preserving full TrailCharter visual-design control.
 - Local-first persistence architecture agreed using Room, DataStore and app-managed files behind repository boundaries.
-- Offline-by-default network/privacy rules, local-only user-controlled backup/export, contextual permissions and location-tracking privacy status are agreed.
+- Network-silent privacy rules, local-only user-controlled backup/export, contextual permissions and location-tracking privacy status are agreed.
 - Altrove as a product name is rejected/superseded because of a directly adjacent active travel-planning product using that name.
 - Seasonal icon system locked as FINAL.
 - GitHub repository exists at `Masamunr/altrove`.
@@ -105,14 +116,15 @@ No production Android application has been implemented yet.
 - Keep early architecture modular and replaceable where major technical choices remain open.
 - Prioritise privacy-first, offline-first and local-first foundations.
 - Do not introduce accounts, ads, analytics, telemetry or silent uploads.
-- Treat mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
+- Do not introduce a TrailCharter-owned application backend for core functionality.
+- Treat UK mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
 
 ## Next priorities
 1. Define CI/build pipeline.
 2. Preserve the exact FINAL launcher icon reference asset in GitHub.
 3. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
 4. Define the Adventure information model and main UX/navigation model.
-5. Investigate map/offline architecture.
+5. Investigate UK map/offline architecture and package distribution within the zero-owned-server constraint.
 
 ## Implementation gate
 **OPEN — AGREE**
