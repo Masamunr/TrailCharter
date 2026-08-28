@@ -18,9 +18,9 @@ Foundation decisions completed:
 - SDK baseline: `minSdk 28`, `targetSdk 36`, `compileSdk 36`
 - build toolchain: AGP `8.13.2`, Gradle `8.13`, Kotlin `2.3.21`, JDK `17`, Kotlin DSL, Gradle version catalog
 - Compose/UI foundation: Compose-first, Compose BOM `2026.06.00`, Material 3 behaviour/accessibility foundation, single activity, TrailCharter-owned design system, edge-to-edge/adaptive/accessibility-first UI; final navigation remains EXPLORE
+- local-first persistence: Room for structured data, DataStore for preferences, app-managed files for GPX/attachments/offline packages, repository boundaries, KSP, explicit migrations, no destructive production migrations, local data authoritative
 
 Remaining initial foundation scope:
-- local-first persistence boundary
 - privacy/network guardrails
 - backup/export behaviour
 - CI/build pipeline
