@@ -92,6 +92,17 @@ android {
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 
+// Keep the normal TrailCharter application identity/version at versionCode 11. Only the isolated
+// debug .mapspike APK gets a higher install version so repeated physical spike installs are
+// deterministic and never depend on Android accepting an equal-version replacement.
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        variant.outputs.forEach { output ->
+            output.versionCode.set(12)
+        }
+    }
+}
+
 tasks.named("preBuild").configure { dependsOn(prepareLauncherIcon) }
 
 ksp {
