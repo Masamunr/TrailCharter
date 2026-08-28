@@ -81,7 +81,7 @@ These fixes were merged through PR #9 at merge commit `62dba4df7be7615be073e7538
 
 ## Stage-integrated progress refinement
 
-Status: **AGREE / IMPLEMENTATION IN PROGRESS**
+Status: **AGREE / IMPLEMENTED / PHYSICAL RETEST PENDING**
 
 Physical testing of `0.2.1-alpha1` confirmed that a separate Progress/milestone section unnecessarily duplicated the Stage plan.
 
@@ -90,6 +90,8 @@ Physical testing of `0.2.1-alpha1` confirmed that a separate Progress/milestone 
 - The separate user-facing Progress/milestone-entry UI is removed from this first-pass flow.
 - Existing alpha itinerary/milestone database rows are preserved rather than destructively deleted. They no longer drive the visible progress model and remain available for future itinerary-model work.
 - Room schema version 2 adds Stage completion state through an explicit versioned migration from schema 1; destructive migration remains prohibited.
+
+This refinement was merged through PR #10 as `0.2.2-alpha1` / versionCode 10 at merge commit `080b19a907490c1fdaf42423f4376167a192b091`. Post-merge Android CI run #36 (`33197950163`) passed unit tests, lint, debug assembly, continuity-signing certificate verification, Room-schema export and artifact upload.
 
 ## Map-planned Stages and routing
 
