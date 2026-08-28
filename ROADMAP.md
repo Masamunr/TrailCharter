@@ -16,9 +16,9 @@ Implementation may now proceed incrementally while unresolved product and archit
 Foundation decisions completed:
 - package/application identity: `com.masamunr.trailcharter`
 - SDK baseline: `minSdk 28`, `targetSdk 36`, `compileSdk 36`
+- build toolchain: AGP `8.13.2`, Gradle `8.13`, Kotlin `2.3.21`, JDK `17`, Kotlin DSL, Gradle version catalog
 
 Remaining initial foundation scope:
-- Android toolchain baseline
 - Compose/UI foundation
 - branding and theme foundation
 - local-first persistence boundary
