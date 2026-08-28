@@ -13,9 +13,12 @@
 ## Phase 1 — Android Foundation — OPEN
 Implementation may now proceed incrementally while unresolved product and architecture questions remain EXPLORE.
 
-Initial foundation scope:
-- Android project/toolchain baseline
-- package/application identity
+Foundation decisions completed:
+- package/application identity: `com.masamunr.trailcharter`
+- SDK baseline: `minSdk 28`, `targetSdk 36`, `compileSdk 36`
+
+Remaining initial foundation scope:
+- Android toolchain baseline
 - Compose/UI foundation
 - branding and theme foundation
 - local-first persistence boundary
