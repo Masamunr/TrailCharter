@@ -1,6 +1,7 @@
-# Altrove Specification
+# TrailCharter Specification
 
 ## AGREE
+- Product name: **TrailCharter** (AGREE, not yet FINAL)
 - Android-first
 - Privacy-first
 - Offline-first wherever practical
@@ -12,12 +13,12 @@
 - Location remains on-device unless explicitly shared
 - Network actions must be transparent
 - OpenStreetMap foundation
-- Altrove is an adventure-planning application, not merely navigation
+- TrailCharter is an adventure-planning application, not merely navigation
 - Live location sharing is agreed in principle: opt-in, recipient-controlled, duration-controlled, visibly active, immediately stoppable, honest about connectivity loss
 - Seasonal launcher icon system in `docs/brand/BRAND_IDENTITY.md` is FINAL
 
 ## Transparency by Design
-Whenever Altrove accesses GPS, downloads data, stores information, connects to the internet or shares data, users should be able to understand what is happening, why, where data is going and how to stop it.
+Whenever TrailCharter accesses GPS, downloads data, stores information, connects to the internet or shares data, users should be able to understand what is happening, why, where data is going and how to stop it.
 
 ## EXPLORE
 - Exact adventure information architecture
