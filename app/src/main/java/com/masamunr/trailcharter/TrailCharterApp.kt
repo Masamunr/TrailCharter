@@ -3,13 +3,11 @@ package com.masamunr.trailcharter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -73,8 +71,6 @@ fun TrailCharterApp(
                 label = stringResource(R.string.cloud_backup),
                 value = if (privacyStatus.cloudBackupEnabled) "On" else stringResource(R.string.status_off),
             )
-
-            Spacer(modifier = Modifier.weight(1f))
 
             Text(
                 text = stringResource(R.string.foundation_footer),
