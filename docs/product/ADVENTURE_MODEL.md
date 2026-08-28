@@ -2,7 +2,7 @@
 
 Status: **AGREE / EXPLORE DETAIL**
 
-This document records the agreed product backbone for Adventures while keeping unresolved implementation and UX detail explicitly open. It is deliberately above the Room/database-schema level.
+This document records the agreed product backbone for Adventures while keeping unresolved implementation and UX detail explicitly open. It is deliberately product-led rather than database-led.
 
 ## Agreed backbone
 
@@ -40,6 +40,26 @@ TrailCharter will support progress/completion against relevant Adventure items, 
 - A user must be able to correct/undo an automatic completion.
 - Completion should be recorded as user-owned Adventure state rather than inferred afresh every time the screen opens.
 
+## First playable vertical slice
+
+Status: **AGREE / IMPLEMENTATION IN PROGRESS**
+
+The first physical-device Adventure alpha intentionally implements only the minimum coherent subset needed to exercise the model:
+
+- Adventure list/home.
+- Create Adventure with title required and summary/dates optional.
+- Edit and delete an Adventure.
+- Optional ordered Stages.
+- Basic ordered Itinerary items/milestones, optionally associated with a Stage.
+- Manual completion and undo.
+- Adventure progress summary derived from persisted completion state.
+- Local Room persistence with schema version 1.
+- In-place upgrade continuity through the established development signing identity.
+
+This slice is not the final IA or visual design. It exists to put the agreed product model onto a physical phone early and gather evidence before larger modules are built.
+
+The first schema deliberately does **not** introduce Places, Routes, accommodation/arrangements, pack, food/water, safety, notes, journal, GPX or map-package tables before those details are sufficiently agreed.
+
 ## Still EXPLORE
 
 - Exact arrival-radius/tolerance rules for automatic completion.
@@ -47,5 +67,6 @@ TrailCharter will support progress/completion against relevant Adventure items, 
 - Visual treatment of completed stages, itinerary items, places and overall Adventure progress.
 - Whether non-location itinerary events can support other automatic completion triggers.
 - Exact Adventure status/lifecycle values.
-- Exact primary navigation and screen structure.
-- Room entities, relationships, indices and migrations. These remain deliberately deferred until the wider product model is sufficiently agreed.
+- Exact primary navigation and final screen structure.
+- Detailed Place, Route, arrangement, pack, food/water, safety, note, journal and attachment models.
+- Future Room schema changes for those concepts. All changes after schema version 1 require explicit versioned migrations; destructive production migration remains prohibited.
