@@ -36,6 +36,13 @@
 - Prefer Android Photo Picker and Storage Access Framework over broad media/storage permissions.
 - Background location is not part of the foundation permission set and requires a separate future decision.
 - Privacy Status includes an unambiguous location-tracking state such as `On` / `Off`; richer privacy-status information may be added alongside later capabilities.
+- GitHub Actions is the Android CI platform.
+- CI runs for Android/build-file changes on pull requests and pushes to `main`, with manual dispatch available when required.
+- CI uses `ubuntu-latest`, JDK 17 and the committed Gradle Wrapper.
+- CI must pass `testDebugUnitTest`, `lintDebug` and `assembleDebug` before a build is considered verified.
+- Successful CI runs upload a debug APK artifact; failure reports/logs are retained where available.
+- The official Gradle setup action provides Gradle dependency caching and Gradle Wrapper validation.
+- Normal CI/debug builds require no production signing secrets and do not publish automatically to Google Play.
 - Android-first
 - Privacy-first
 - Offline-first wherever practical
