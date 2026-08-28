@@ -261,10 +261,10 @@ jobs:
             "$OS_CLIPPED_MBTILES" \
             "$ASSET_DIR/eryri-contours.pmtiles"
 
-          # Only numeric contour labels are rendered, so Basic Latin glyphs are sufficient. The
-          # PBF is embedded and served from app-private storage; no runtime glyph networking occurs.
+          # Only numeric contour labels are rendered, so Basic Latin glyphs are sufficient. Pin
+          # the open glyph PBF to an immutable OpenMapTiles commit rather than a mutable demo URL.
           curl --fail --location --retry 3 --silent --show-error \
-            "https://demotiles.maplibre.org/font/Open%20Sans%20Regular/0-255.pbf" \
+            "https://raw.githubusercontent.com/openmaptiles/fonts/025ff2b2f84cc0fdf11f7b1d74b3a784595fe7a4/Open%20Sans%20Regular/0-255.pbf" \
             -o "$GLYPH_DIR/0-255.pbf"
           test -s "$GLYPH_DIR/0-255.pbf"
 
