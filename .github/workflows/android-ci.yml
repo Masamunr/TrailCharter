@@ -69,10 +69,14 @@ jobs:
           PMTILES_URL="https://github.com/protomaps/go-pmtiles/releases/download/v${PMTILES_VERSION}/${PMTILES_ARCHIVE}"
           PMTILES_SHA256="3ed7dbf4ec2e6dfe5e25b6f70d1ffc932729f93c86db353bf514dd71010a312f"
           SPIKE_BBOX="-4.22,52.97,-3.95,53.18"
+          # Keep z15 relief focused on the Yr Wyddfa walking-scale test area. Full-Eryri z15
+          # Terrarium made run 75's terrain package ~287 MB and the APK ~361 MiB, which is not
+          # a sensible installation test. z0-z12 still covers the full spike bbox below.
+          TERRAIN_HIGH_BBOX="-4.15,53.035,-4.015,53.12"
           ASSET_DIR="app/src/debug/assets/map_spike"
           TOOL_DIR="$RUNNER_TEMP/pmtiles-cli"
           TERRAIN_LOW="$RUNNER_TEMP/eryri-terrain-z0-z12.pmtiles"
-          TERRAIN_HIGH="$RUNNER_TEMP/eryri-terrain-z13-z15.pmtiles"
+          TERRAIN_HIGH="$RUNNER_TEMP/eryri-terrain-z13-z15-core.pmtiles"
 
           mkdir -p "$TOOL_DIR" "$ASSET_DIR"
           curl --fail --location --retry 3 --silent --show-error \
@@ -83,6 +87,7 @@ jobs:
           test -n "$PMTILES_BIN"
           chmod +x "$PMTILES_BIN"
           "$PMTILES_BIN" --help >/dev/null
+          "$PMTILES_BIN" extract --help | grep -q -- '--minzoom'
 
           # Stable OSM-derived Protomaps v4 mirror. This is a build-time source only; the
           # resulting extract is embedded in the spike APK and the app remains network-silent.
@@ -92,9 +97,9 @@ jobs:
             --bbox="$SPIKE_BBOX" \
             --maxzoom=15
 
-          # Mapterhorn's global archive supplies z0-z12 terrain. Eryri sits wholly inside the
-          # z6 shard 6-31-20, whose higher-resolution terrain is extracted through z15. Merge
-          # both extracts so the phone still reads one completely local PMTiles terrain package.
+          # Mapterhorn's global archive supplies full-area z0-z12 terrain. The regional shard
+          # supplies only z13-z15 for a controlled central walking-scale comparison. Merge them
+          # into one local package so MapLibre retains the existing offline source boundary.
           "$PMTILES_BIN" extract \
             "https://download.mapterhorn.com/planet.pmtiles" \
             "$TERRAIN_LOW" \
@@ -104,7 +109,8 @@ jobs:
           "$PMTILES_BIN" extract \
             "https://download.mapterhorn.com/6-31-20.pmtiles" \
             "$TERRAIN_HIGH" \
-            --bbox="$SPIKE_BBOX" \
+            --bbox="$TERRAIN_HIGH_BBOX" \
+            --minzoom=13 \
             --maxzoom=15
 
           rm -f "$ASSET_DIR/eryri-terrain.pmtiles"
@@ -118,6 +124,14 @@ jobs:
           du -h "$ASSET_DIR"/*.pmtiles
           "$PMTILES_BIN" show "$ASSET_DIR/eryri-basemap.pmtiles"
           "$PMTILES_BIN" show "$ASSET_DIR/eryri-terrain.pmtiles"
+
+          TERRAIN_BYTES=$(stat -c%s "$ASSET_DIR/eryri-terrain.pmtiles")
+          MAX_TERRAIN_BYTES=$((100 * 1024 * 1024))
+          if (( TERRAIN_BYTES > MAX_TERRAIN_BYTES )); then
+            echo "Terrain package is still too large for the controlled spike: $TERRAIN_BYTES bytes" >&2
+            exit 1
+          fi
+          echo "Terrain package size gate passed: $TERRAIN_BYTES bytes"
 
       - name: Prepare continuity debug signing
         env:
@@ -178,10 +192,23 @@ jobs:
                   print(f"{name}: stored, {info.file_size} bytes")
           PY
 
-      - name: Verify privacy-baseline APK permissions
+          APK_BYTES=$(stat -c%s "$APK_PATH")
+          MAX_APK_BYTES=$((190 * 1024 * 1024))
+          if (( APK_BYTES > MAX_APK_BYTES )); then
+            echo "Map spike APK remains too large for a practical sideload test: $APK_BYTES bytes" >&2
+            exit 1
+          fi
+          echo "APK size gate passed: $APK_BYTES bytes"
+
+      - name: Verify spike install identity and privacy baseline
         run: |
           APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
           test -n "$APK_PATH"
+
+          BADGING=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK_PATH")
+          printf '%s\n' "$BADGING" | head -n 3
+          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='12'" <<< "$BADGING"
+
           PERMISSIONS=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$APK_PATH")
           printf '%s\n' "$PERMISSIONS"
 
@@ -199,7 +226,7 @@ jobs:
               exit 1
             fi
           done
-          echo "Final APK preserves the current network/location-silent permission baseline."
+          echo "Map spike identity/version and network/location-silent permission baseline verified."
 
       - name: Verify continuity signing certificate
         env:
