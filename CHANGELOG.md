@@ -1,8 +1,8 @@
-# Changelog
+# TrailCharter Changelog
 
 ## Unreleased
 ### Design
-- Consolidated Altrove + Adventure history.
+- Consolidated the earlier Altrove + Adventure project history into TrailCharter.
 - Established constitution and vision.
 - Classified current decisions.
 - Locked seasonal launcher icon system as FINAL.
