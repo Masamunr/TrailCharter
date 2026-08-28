@@ -2,6 +2,9 @@
 
 ## AGREE
 - Product name: **TrailCharter** (AGREE, not yet FINAL)
+- Current geographic scope: **United Kingdom only** — England, Scotland, Wales and Northern Ireland. Crown Dependencies and other countries are outside the current scope.
+- Live location sharing is **not part of the current product/release scope**. Location tracking remains local to the device. Live sharing may be reconsidered only in a later scope review.
+- Core TrailCharter functionality must not depend on servers owned or administered by the project. Core data and computation remain device-resident; external services, where genuinely required for public/external data or distribution, must be isolated and replaceable.
 - Android namespace: `com.masamunr.trailcharter`
 - Android application ID: `com.masamunr.trailcharter`
 - Android SDK baseline: `minSdk = 28`, `targetSdk = 36`, `compileSdk = 36`
@@ -21,7 +24,7 @@
 - Core/personal Adventure data is local and authoritative; no cloud/backend dependency for core functionality
 - Explicit versioned database migrations are required from the beginning; destructive production migrations are not permitted
 - Credentials or cryptographic key material, if later required, use Android Keystore-backed handling
-- **Offline by default:** the initial app does not declare `INTERNET` permission. If network-dependent capabilities are added later, ordinary app operation remains offline unless a user action or explicitly enabled feature requires network access.
+- **Network-silent by default:** opening and using core TrailCharter functionality performs no network activity by default. The initial app does not declare `INTERNET` permission. If network-dependent capabilities are added later, network access occurs only for clear user-initiated or explicitly enabled features.
 - Network access is centralised behind a defined TrailCharter network boundary; features must not create ad-hoc background connections.
 - No advertising, analytics, telemetry, tracking SDKs or silent uploads.
 - When networking exists, cleartext HTTP is disabled for ordinary app networking and secure transport is required.
@@ -41,15 +44,12 @@
 - No advertising
 - No analytics or telemetry by default
 - No silent uploads
-- Location remains on-device unless explicitly shared
-- Network actions must be transparent
 - OpenStreetMap foundation
 - TrailCharter is an adventure-planning application, not merely navigation
-- Live location sharing is agreed in principle: opt-in, recipient-controlled, duration-controlled, visibly active, immediately stoppable, honest about connectivity loss
 - Seasonal launcher icon system in `docs/brand/BRAND_IDENTITY.md` is FINAL
 
 ## Transparency by Design
-Whenever TrailCharter accesses GPS, downloads data, stores information, connects to the internet or shares data, users should be able to understand what is happening, why, where data is going and how to stop it.
+Whenever TrailCharter accesses GPS, downloads data, stores information, connects to the internet or shares/exports data, users should be able to understand what is happening, why, where data is going and how to stop it.
 
 ## EXPLORE
 - Exact adventure information architecture
@@ -58,11 +58,13 @@ Whenever TrailCharter accesses GPS, downloads data, stores information, connects
 - Enhanced application-level encryption/threat model beyond normal Android app sandbox/device encryption
 - Exact TrailCharter backup archive format and optional user-controlled backup encryption
 - Organic Maps reuse/integration/fork strategy
-- Offline map/routing architecture
+- UK offline map/routing architecture
+- UK map package generation/distribution approach
 - Adventure Download packaging
-- Live-location technical architecture and E2E encryption
 - Safety tooling
 - Equipment/pack-weight model
 - Food/water model
 - Journaling model
-- Exact V1 scope
+- Exact V1 feature scope within the UK boundary
+- Future expansion beyond the UK
+- Possible future reconsideration of live location sharing outside the current scope
