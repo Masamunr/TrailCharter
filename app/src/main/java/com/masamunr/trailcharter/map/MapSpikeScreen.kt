@@ -34,17 +34,16 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import org.maplibre.android.MapLibre
 import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
 
 /**
  * Physical-device native renderer diagnostic used only on the draft spike branch.
  *
  * This bypasses MapLibre Compose for map-surface tests while deliberately mirroring the lifecycle
- * ordering used by MapLibre Compose itself: the Android view is created first, then a Lifecycle
- * observer forwards ON_CREATE/START/RESUME and their matching teardown events to the MapView.
- * MapLibre is explicitly forced to disconnected mode so its ConnectivityReceiver never queries
- * ConnectivityManager; TrailCharter therefore keeps ACCESS_NETWORK_STATE absent from the APK.
- * A process-wide uncaught-exception handler persists any Java stack trace before delegating to
- * Android's normal crash handler.
+ * ordering used by MapLibre Compose itself. MapLibre is explicitly forced to disconnected mode so
+ * its ConnectivityReceiver never queries ConnectivityManager; TrailCharter therefore keeps
+ * ACCESS_NETWORK_STATE absent from the APK. The local style is loaded through
+ * Style.Builder().fromJson rather than the String overload, which represents a style URI.
  */
 @Composable
 internal fun MapSpikeScreen() {
@@ -124,9 +123,13 @@ internal fun MapSpikeScreen() {
 
     NativeMapStage(
         stage = stage,
+        onCheckpoint = { checkpoint ->
+            record(stage, checkpoint)
+            status = "${stage.label}: $checkpoint"
+        },
         onPassed = {
             record(stage, "PASSED")
-            status = "PASS: ${stage.label}. Close and reopen for the next test."
+            status = "PASS: ${stage.label}. Local JSON style loaded. Close and reopen for the next test."
         },
         onFailed = { reason ->
             record(stage, "FAILED: $reason")
@@ -139,11 +142,13 @@ internal fun MapSpikeScreen() {
 @Composable
 private fun NativeMapStage(
     stage: DiagnosticStage,
+    onCheckpoint: (String) -> Unit,
     onPassed: () -> Unit,
     onFailed: (String) -> Unit,
     status: String,
 ) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val currentOnCheckpoint by rememberUpdatedState(onCheckpoint)
     val currentOnPassed by rememberUpdatedState(onPassed)
     val currentOnFailed by rememberUpdatedState(onFailed)
     val textureMode = stage == DiagnosticStage.DIRECT_TEXTURE_MAP
@@ -181,9 +186,13 @@ private fun NativeMapStage(
                         .textureMode(textureMode),
                 ).also { mapView ->
                     currentMapView = mapView
+                    currentOnCheckpoint("VIEW_ATTACHED")
                     mapView.getMapAsync { map ->
+                        currentOnCheckpoint("MAP_READY")
                         runCatching {
-                            map.setStyle(engineOnlyStyle) {
+                            currentOnCheckpoint("STYLE_REQUESTED")
+                            map.setStyle(Style.Builder().fromJson(engineOnlyStyle)) {
+                                currentOnCheckpoint("STYLE_LOADED")
                                 currentOnPassed()
                             }
                         }.onFailure { error ->
@@ -236,7 +245,7 @@ private fun DiagnosticMenu(
         ) {
             Text("TrailCharter native map diagnostic", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "This isolates library loading, SurfaceView rendering and TextureView rendering with MapLibre forced offline. Reopen after any crash.",
+                "This isolates library loading, map readiness and fully local JSON style loading with MapLibre forced offline. Reopen after any crash or stalled stage.",
                 style = MaterialTheme.typography.bodyMedium,
             )
 
@@ -250,7 +259,7 @@ private fun DiagnosticMenu(
                     ?.label
                     ?: lastAttempt
                 val readableResult = when (lastResult) {
-                    "STARTED" -> "STARTED but never returned. Process death during this stage is likely."
+                    "STARTED" -> "STARTED; no later renderer checkpoint was reached."
                     "PASSED" -> "PASSED"
                     null -> "No result recorded"
                     else -> lastResult
@@ -275,7 +284,7 @@ private fun DiagnosticMenu(
             }
 
             Text(
-                "Stage 1 creates no map surface. Stages 2 and 3 use native Android MapView directly. No PMTiles, Internet permission or network-state permission is used.",
+                "Renderer checkpoints are VIEW_ATTACHED → MAP_READY → STYLE_REQUESTED → STYLE_LOADED. The style is local JSON; no PMTiles, Internet permission or network-state permission is used.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
