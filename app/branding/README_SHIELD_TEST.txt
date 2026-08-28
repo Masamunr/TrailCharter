@@ -1,0 +1,1 @@
+Shield launcher test assets are derived directly from the approved shield launcher reference supplied on 2026-08-28. No landscape redraw or reinterpretation is permitted.
