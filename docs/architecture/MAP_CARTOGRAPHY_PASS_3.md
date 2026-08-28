@@ -62,6 +62,30 @@ After Pass 3 physical testing, AGREE to move heavyweight cartographic preparatio
 
 This sequencing prevents APK delivery constraints from prematurely deciding cartographic quality while retaining device performance and practical storage as real engineering constraints.
 
+## Run #93 CI evidence
+
+GitHub Actions run **#93** completed successfully for the Pass 3 implementation. CI produced and verified:
+
+- a Protomaps/OSM vector basemap through native z15;
+- Mapterhorn terrain covering full Eryri through z12, the accepted central area through z15, and the tighter summit/walking test area through native z16;
+- an OS Terrain 50 Eryri contour package containing 350 vector tiles across z9-z14, preserving the source `contour_line` elevation attributes;
+- the local Basic Latin glyph PBF required for fully offline contour labels;
+- the Tilt/Zoom slider implementation, live camera-state synchronization and deterministic North action;
+- the isolated `com.masamunr.trailcharter.mapspike` APK at versionCode 13;
+- final-APK network/location permission rejection and continuity-signing verification.
+
+Measured Run #93 embedded assets and APK:
+
+| Item | Bytes | Approx. MiB |
+| --- | ---: | ---: |
+| Eryri vector PMTiles | 5,189,037 | 4.9 |
+| Eryri terrain PMTiles | 90,095,950 | 85.9 |
+| Eryri OS Terrain 50 contour PMTiles | 9,223,329 | 8.8 |
+| Local contour-label glyph PBF | 74,696 | 0.07 |
+| Final debug APK | 191,405,165 | 182.5 |
+
+The final APK passed unit tests, lint, debug assembly, stored/uncompressed embedded-asset verification, map-spike identity/version verification, forbidden-permission verification, continuity-signing verification and artifact upload. CI success is **not** physical acceptance; Run #93 now requires comparison against physically accepted Run #79.
+
 ## Acceptance for this pass
 
 - Run #79 remains the accepted physical baseline and is not regressed.
