@@ -10,6 +10,12 @@ val launcherArtworkSource = layout.projectDirectory.file("branding/ic_launcher_s
 val generatedLauncherResDir = layout.buildDirectory.dir("generated/trailcharterLauncher/res")
 val expectedLauncherArtworkSha256 = "881ca2eca089dcd7ee89f0ed1dd425cd6cd8fddb4480526a6571928c450f3fb8"
 
+val ciSigningStorePath = providers.environmentVariable("TRAILCHARTER_CI_KEYSTORE_PATH").orNull
+val ciSigningStorePassword = providers.environmentVariable("TRAILCHARTER_CI_KEYSTORE_PASSWORD").orNull
+val ciSigningKeyAlias = providers.environmentVariable("TRAILCHARTER_CI_KEY_ALIAS").orNull
+val ciSigningKeyPassword = providers.environmentVariable("TRAILCHARTER_CI_KEY_PASSWORD").orNull
+val ciSigningConfigured = listOf(ciSigningStorePath, ciSigningStorePassword, ciSigningKeyAlias, ciSigningKeyPassword).all { !it.isNullOrBlank() }
+
 val prepareLauncherIcon by tasks.registering {
     inputs.file(launcherArtworkSource)
     outputs.dir(generatedLauncherResDir)
@@ -19,23 +25,10 @@ val prepareLauncherIcon by tasks.registering {
         check(artwork.size >= 12) { "Launcher artwork is too small to be a valid WebP file" }
         check(String(artwork, 0, 4, Charsets.US_ASCII) == "RIFF") { "Launcher artwork is not a RIFF file" }
         check(String(artwork, 8, 4, Charsets.US_ASCII) == "WEBP") { "Launcher artwork is not a WebP file" }
-
-        val declaredRiffSize =
-            (artwork[4].toInt() and 0xff) or
-                ((artwork[5].toInt() and 0xff) shl 8) or
-                ((artwork[6].toInt() and 0xff) shl 16) or
-                ((artwork[7].toInt() and 0xff) shl 24)
-        check(declaredRiffSize + 8 == artwork.size) {
-            "Launcher artwork is truncated or has unexpected trailing bytes"
-        }
-
-        val actualSha256 = MessageDigest.getInstance("SHA-256")
-            .digest(artwork)
-            .joinToString("") { "%02x".format(it.toInt() and 0xff) }
-        check(actualSha256 == expectedLauncherArtworkSha256) {
-            "Launcher artwork bytes do not match the approved shield source"
-        }
-
+        val declaredRiffSize = (artwork[4].toInt() and 0xff) or ((artwork[5].toInt() and 0xff) shl 8) or ((artwork[6].toInt() and 0xff) shl 16) or ((artwork[7].toInt() and 0xff) shl 24)
+        check(declaredRiffSize + 8 == artwork.size) { "Launcher artwork is truncated or has unexpected trailing bytes" }
+        val actualSha256 = MessageDigest.getInstance("SHA-256").digest(artwork).joinToString("") { "%02x".format(it.toInt() and 0xff) }
+        check(actualSha256 == expectedLauncherArtworkSha256) { "Launcher artwork bytes do not match the approved shield source" }
         val mipmapDir = generatedLauncherResDir.get().dir("mipmap-xxxhdpi").asFile
         mipmapDir.mkdirs()
         mipmapDir.resolve("ic_launcher.webp").writeBytes(artwork)
@@ -52,21 +45,30 @@ android {
         applicationId = "com.masamunr.trailcharter"
         minSdk = 28
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.1.5-foundation"
+        versionCode = 7
+        versionName = "0.1.6-foundation"
     }
 
-    sourceSets {
-        getByName("main").res.srcDir(generatedLauncherResDir)
+    sourceSets { getByName("main").res.srcDir(generatedLauncherResDir) }
+
+    signingConfigs {
+        if (ciSigningConfigured) {
+            create("continuityDebug") {
+                storeFile = file(requireNotNull(ciSigningStorePath))
+                storePassword = requireNotNull(ciSigningStorePassword)
+                keyAlias = requireNotNull(ciSigningKeyAlias)
+                keyPassword = requireNotNull(ciSigningKeyPassword)
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            if (ciSigningConfigured) signingConfig = signingConfigs.getByName("continuityDebug")
+        }
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
@@ -74,37 +76,22 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    buildFeatures {
-        compose = true
-    }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
+    buildFeatures { compose = true }
+    packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 
-tasks.named("preBuild").configure {
-    dependsOn(prepareLauncherIcon)
-}
+tasks.named("preBuild").configure { dependsOn(prepareLauncherIcon) }
 
-kotlin {
-    jvmToolchain(17)
-}
+kotlin { jvmToolchain(17) }
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
-
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-
     debugImplementation(libs.androidx.compose.ui.tooling)
-
     testImplementation(libs.junit)
 }

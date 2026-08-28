@@ -12,6 +12,7 @@ on:
       - 'gradle.properties'
       - 'gradlew'
       - 'gradlew.bat'
+      - '.github/workflows/android-ci.yml'
   pull_request:
     paths:
       - 'app/**'
@@ -21,6 +22,7 @@ on:
       - 'gradle.properties'
       - 'gradlew'
       - 'gradlew.bat'
+      - '.github/workflows/android-ci.yml'
   workflow_dispatch:
 
 permissions:
@@ -57,8 +59,56 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Prepare continuity debug signing
+        env:
+          KEYSTORE_B64: ${{ secrets.TRAILCHARTER_CI_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.TRAILCHARTER_CI_KEYSTORE_PASSWORD }}
+        run: |
+          if [[ -z "$KEYSTORE_B64" || -z "$KEYSTORE_PASSWORD" ]]; then
+            if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+              echo "Continuity signing secrets are required for authoritative main APKs." >&2
+              exit 1
+            fi
+            echo "Continuity signing secrets unavailable for this PR; using the standard disposable debug signer."
+            echo "TRAILCHARTER_CONTINUITY_SIGNING=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          echo "::add-mask::$KEYSTORE_PASSWORD"
+          KEYSTORE_PATH="$RUNNER_TEMP/trailcharter-ci-debug.p12"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+          keytool -list \
+            -keystore "$KEYSTORE_PATH" \
+            -storetype PKCS12 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -alias trailcharter-ci-debug >/dev/null
+
+          echo "TRAILCHARTER_CI_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "TRAILCHARTER_CI_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "TRAILCHARTER_CI_KEY_ALIAS=trailcharter-ci-debug" >> "$GITHUB_ENV"
+          echo "TRAILCHARTER_CI_KEY_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "TRAILCHARTER_CONTINUITY_SIGNING=true" >> "$GITHUB_ENV"
+
       - name: Unit tests, lint and debug build
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace --no-daemon
+
+      - name: Verify continuity signing certificate
+        env:
+          EXPECTED_CERT_SHA256: b0c753f9b46c1ca25a0ae546e4aefe818a95dc83f95be74bccd3cf17e947d26c
+        run: |
+          if [[ "$TRAILCHARTER_CONTINUITY_SIGNING" != "true" ]]; then
+            echo "Continuity signing verification skipped for an untrusted/external PR build."
+            exit 0
+          fi
+
+          APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
+          test -n "$APK_PATH"
+          ACTUAL_CERT_SHA256=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$APK_PATH" | awk -F ': ' '/certificate SHA-256 digest/ {print tolower($2); exit}')
+          if [[ "$ACTUAL_CERT_SHA256" != "$EXPECTED_CERT_SHA256" ]]; then
+            echo "Unexpected debug signing certificate: $ACTUAL_CERT_SHA256" >&2
+            exit 1
+          fi
+          echo "Continuity debug signing certificate verified."
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v6
