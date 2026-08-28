@@ -103,7 +103,10 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.maplibre.compose)
+    implementation(libs.maplibre.compose) {
+        exclude(group = "org.maplibre.gl", module = "android-sdk")
+    }
+    implementation(libs.maplibre.android.opengl)
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
