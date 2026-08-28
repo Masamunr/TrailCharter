@@ -1,9 +1,11 @@
 # Launcher branding implementation
 
-TrailCharter uses the approved no-shield mountains / trees / river / sun composition unchanged as the launcher artwork source.
+TrailCharter's landscape composition remains FINAL: the approved mountains / trees / river / sun scene must not be redrawn or reinterpreted.
 
-Android adaptive icons use a 108 dp layer with an inner safe visual region. The first implementation placed the complete approved artwork across the whole adaptive layer, which caused the launcher mask to crop the composition and made it appear oversized. The next correction inset the approved artwork but mistakenly retained a second full-size copy as the background layer, producing visible duplicate sun, mountain and tree fragments around the inset artwork.
+Physical-device testing showed that using that complete scene edge-to-edge as the Android adaptive icon caused the launcher mask to crop into the composition. The first inset correction then exposed duplicate artwork around the edges because a second copy of the scene remained in the adaptive background.
 
-The current implementation uses one copy of the approved composition in the adaptive foreground, inset for the launcher mask, with the approved pale neutral brand background (#F2ECE2) behind it. No second copy of the landscape is present and the artwork itself is not redrawn or reinterpreted.
+For version 0.1.4-foundation, the launcher-container decision is temporarily reopened for an EXPLORE physical-device test using the previously approved shield treatment. The shield artwork is derived directly from the supplied approved shield launcher reference. The shield is centred on the brand dark-green field (#1F3D2E), with enough surrounding field for Android to apply circle, square and rounded-square masks without cropping the landscape inside the shield.
 
-The build validates the approved WebP bytes before generating launcher resources.
+The adaptive foreground contains one shield composition only. The adaptive background is plain #1F3D2E. No second landscape copy is present.
+
+The build validates the shield WebP structure and SHA-256 before generating regular, round and adaptive launcher resources.
