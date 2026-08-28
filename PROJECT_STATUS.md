@@ -90,6 +90,12 @@ The UI foundation does not lock TrailCharter into stock Material appearance. Mat
 - Exact backup archive format and optional user-controlled backup encryption remain **EXPLORE**
 - Status: **AGREE / FOUNDATION IMPLEMENTED**
 
+## Launcher identity
+- Approved shield + landscape launcher treatment is **FINAL** after physical-device acceptance of `0.1.5-foundation`.
+- The foreground composition is constrained to Android's defined adaptive-icon safe zone over the TrailCharter dark-green background so OEM masks crop only surrounding background rather than the artwork.
+- No further launcher redesign is planned unless the FINAL decision is explicitly reopened.
+- Status: **FINAL / IMPLEMENTED / PHYSICALLY VERIFIED**
+
 ## CI / build foundation
 - GitHub Actions is the Android CI platform
 - Permanent workflow: `.github/workflows/android-ci.yml`
@@ -99,26 +105,34 @@ The UI foundation does not lock TrailCharter into stock Material appearance. Mat
 - Android SDK/API 36 provisioned with `android-actions/setup-android@v4`
 - Gradle: committed Gradle Wrapper with setup/caching/wrapper validation via `gradle/actions/setup-gradle@v6`
 - Verification gate: `testDebugUnitTest`, `lintDebug`, `assembleDebug`
+- Authoritative `main` debug APKs use a persistent development-only signing identity stored through GitHub Actions secrets
+- CI verifies the APK certificate SHA-256 before uploading an authoritative APK
+- A `main` build fails if continuity-signing secrets are unavailable
+- Fork PRs may use Android's disposable debug signer because repository secrets are not exposed to them
+- Production/Google Play signing remains completely separate from the development continuity identity
 - Successful builds upload a debug APK artifact; failure reports/logs are uploaded where available
 - Debug APK retention: 14 days; failure reports: 7 days
-- No production signing secrets required for ordinary CI/debug builds
 - No automatic Google Play publishing at this stage
-- Detailed CI rules: `docs/architecture/CI_BUILD.md`
+- Detailed CI/signing rules: `docs/architecture/CI_BUILD.md`
 - Status: **AGREE / IMPLEMENTED / VERIFIED**
 
 Latest authoritative verification:
-- `main` source merge: `2099d1198875f2dad624ecae86dff2bbcb04f5fc`
-- Android CI run: **#3** (`33170566092`) — **PASS**
+- `main` merge: `779d3d5879de7b59c8861839534400a11165d611`
+- Android CI run: **#25** (`33191878990`) — **PASS**
 - Unit tests: PASS
 - Android lint: PASS
 - Debug assembly: PASS
-- Artifact: `trailcharter-debug-run-3`
-- Artifact digest: `sha256:66863ec48d90cffc6dc9a68122db6059402a8babf6614f148ba2eab2fecd480b`
+- Continuity signing preparation: PASS
+- Continuity signing certificate verification: PASS
+- Expected development certificate SHA-256: `B0:C7:53:F9:B4:6C:1C:A2:5A:0A:E5:46:E4:AE:FE:81:8A:95:DC:83:F9:5B:E7:4B:CC:D3:CF:17:E9:47:D2:6C`
+- Artifact: `trailcharter-debug-run-25` (ID `9694109955`)
+- Artifact ZIP digest: `sha256:c750fb19aeb1869344e670a97f1e716e14665d1d419b4bad55481052944e6d02`
+- Application version: versionCode `7` / versionName `0.1.6-foundation`
 
 ## Implementation
-The first Android foundation is now implemented and merged to `main`.
+The Android foundation, accepted launcher identity and persistent development-signing continuity are implemented on `main`.
 
-It is an installable development foundation, not a feature-complete or production-release application. It establishes the agreed Android/toolchain/privacy seams without prematurely locking the Adventure information architecture, navigation model, mapping architecture or wider in-app visual design.
+TrailCharter remains an installable development foundation rather than a feature-complete production application. The next product-development boundary is the Adventure information model and main UX/navigation model. Room remains deliberately deferred until that model is agreed.
 
 ## Current state
 - Project history consolidated and governance documents established.
@@ -133,11 +147,9 @@ It is an installable development foundation, not a feature-complete or productio
 - Compose-first, Material 3-backed UI foundation implemented while preserving full TrailCharter visual-design control.
 - DataStore settings seam implemented; Room remains deliberately deferred until the structured Adventure model exists.
 - Network-silent privacy rules are reflected in the current foundation manifest/configuration: no INTERNET/location/broad-storage permissions, cloud backup excluded, and cleartext traffic disabled.
-- CI/build foundation is operational and verified on both the foundation PR and post-merge `main`.
-- PR #1 (`Add TrailCharter Android foundation`) merged successfully on 2026-08-28.
-- Seasonal icon system remains locked as FINAL.
-- Brand specification remains at `docs/brand/BRAND_IDENTITY.md`.
-- Asset gap remains: the exact approved no-shield launcher-art reference binary still needs to be committed to the repository; its visual rules remain authoritative in the brand specification.
+- FINAL launcher identity is implemented and physically accepted.
+- Persistent development signing is implemented and CI-verified, establishing `0.1.6-foundation` as the continuity-signing baseline for future in-place development upgrades.
+- Root-cause engineering and no-unsolicited-drawing are standing FINAL working principles.
 
 ## Implementation guardrails
 - Do not prematurely hard-code unresolved EXPLORE decisions.
@@ -146,13 +158,16 @@ It is an installable development foundation, not a feature-complete or productio
 - Do not introduce accounts, ads, analytics, telemetry or silent uploads.
 - Do not introduce a TrailCharter-owned application backend for core functionality.
 - Treat UK mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
+- When repeated incremental fixes are not resolving a problem, stop the tweak cycle and implement the root-cause solution using authoritative technical evidence.
+- Do not generate, redraw, edit or reinterpret imagery unless explicitly requested.
 
 ## Next priorities
-1. Preserve the exact FINAL launcher icon reference asset in GitHub.
-2. Define the Adventure information model and main UX/navigation model.
-3. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
-4. Investigate UK map/offline architecture and package distribution within the zero-owned-server constraint.
-5. Build the first useful Adventure vertical slice once the information model is agreed.
+1. Define and agree the Adventure information model.
+2. Define the main Adventure UX/navigation model from that information model.
+3. Select and implement the first useful Adventure vertical slice.
+4. Introduce Room only after the structured Adventure model is agreed.
+5. Investigate UK map/offline architecture and package distribution within the zero-owned-server constraint in parallel.
+6. Continue wider in-app visual-design language and seasonal theme work when product structure is sufficiently clear.
 
 ## Implementation gate
 **OPEN — AGREE**
