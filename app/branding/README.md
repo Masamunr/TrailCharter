@@ -1,0 +1,1 @@
+TrailCharter launcher branding source for build-time resource generation. The launcher artwork is the approved no-shield landscape composition; no redesign or reinterpretation is intended here.
