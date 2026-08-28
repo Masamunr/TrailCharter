@@ -19,6 +19,15 @@ The name is agreed for current development and branding work but is not yet FINA
 - `compileSdk = 36`
 - Status: **AGREE**
 
+## Android build toolchain
+- Android Gradle Plugin: `8.13.2`
+- Gradle: `8.13`
+- Kotlin: `2.3.21`
+- JDK: `17`
+- Build scripts: Kotlin DSL
+- Dependency/version management: Gradle version catalog (`libs.versions.toml`)
+- Status: **AGREE**
+
 ## Implementation
 Android implementation is authorised as a controlled foundation phase.
 
@@ -32,6 +41,7 @@ No production Android application has been implemented yet.
 - TrailCharter selected as the current agreed product name following deeper collision/clearance checks.
 - Android package/application identity agreed as `com.masamunr.trailcharter`.
 - Android SDK baseline agreed as API 28 minimum and API 36 target/compile.
+- Android build toolchain agreed as AGP 8.13.2 / Gradle 8.13 / Kotlin 2.3.21 / JDK 17 with Kotlin DSL and version catalog.
 - Altrove as a product name is rejected/superseded because of a directly adjacent active travel-planning product using that name.
 - Seasonal icon system locked as FINAL.
 - GitHub repository exists at `Masamunr/altrove`.
@@ -50,7 +60,7 @@ No production Android application has been implemented yet.
 - Treat mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
 
 ## Next priorities
-1. Define remaining Android foundation choices: toolchain, Compose structure, local persistence boundary, privacy/network rules and CI/build pipeline.
+1. Define remaining Android foundation choices: Compose/UI structure, local persistence boundary, privacy/network rules and CI/build pipeline.
 2. Preserve the exact FINAL launcher icon reference asset in GitHub.
 3. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
 4. Define the Adventure information model.
