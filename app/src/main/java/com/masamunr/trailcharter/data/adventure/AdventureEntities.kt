@@ -33,6 +33,8 @@ data class StageEntity(
     val adventureId: Long,
     val title: String,
     val position: Int,
+    val isComplete: Boolean = false,
+    val completedAtEpochMillis: Long? = null,
 )
 
 @Entity(
@@ -70,6 +72,6 @@ data class AdventureSummaryRow(
     val summary: String,
     val startDateEpochDay: Long?,
     val endDateEpochDay: Long?,
-    val itineraryCount: Int,
-    val completedCount: Int,
+    val stageCount: Int,
+    val completedStageCount: Int,
 )
