@@ -10,6 +10,7 @@
 - Summer: approved current palette.
 - Autumn: retain green, tinged with restrained orange/gold.
 - Winter: approved current palette.
+- **Launcher identity from foundation onward:** all installable TrailCharter builds moving forward use the approved no-shield landscape launcher identity rather than a generic/placeholder app icon. Android adaptive-icon resources may crop/scale the approved artwork only as required for platform masks; they must not redesign the composition.
 
 ## AGREE
 - **TrailCharter is the current agreed product name.** It remains AGREE rather than FINAL until deliberately locked for public/release identity.
