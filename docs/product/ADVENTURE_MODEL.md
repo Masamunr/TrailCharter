@@ -42,7 +42,7 @@ TrailCharter will support progress/completion against relevant Adventure items, 
 
 ## First playable vertical slice
 
-Status: **AGREE / IMPLEMENTATION IN PROGRESS**
+Status: **AGREE / IMPLEMENTED / PHYSICAL TEST PENDING**
 
 The first physical-device Adventure alpha intentionally implements only the minimum coherent subset needed to exercise the model:
 
@@ -55,8 +55,13 @@ The first physical-device Adventure alpha intentionally implements only the mini
 - Adventure progress summary derived from persisted completion state.
 - Local Room persistence with schema version 1.
 - In-place upgrade continuity through the established development signing identity.
+- Android system Back handling within the first-pass Adventure flow.
 
 This slice is not the final IA or visual design. It exists to put the agreed product model onto a physical phone early and gather evidence before larger modules are built.
+
+Implementation was merged through PR #8 as `0.2.0-alpha1` / versionCode 8 at merge commit `f2ae96614f21e6970e164be2704e3097b7a88e5c`. Post-merge Android CI run #31 (`33194533139`) passed unit tests, lint, debug assembly, continuity-signing certificate verification, Room-schema export and artifact upload.
+
+Room schema version 1 is committed at `app/schemas/com.masamunr.trailcharter.data.adventure.TrailCharterDatabase/1.json`. CI also exports generated Room schemas so future schema changes can be compared against the compiler-produced migration baseline.
 
 The first schema deliberately does **not** introduce Places, Routes, accommodation/arrangements, pack, food/water, safety, notes, journal, GPX or map-package tables before those details are sufficiently agreed.
 
