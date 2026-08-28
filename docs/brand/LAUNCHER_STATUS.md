@@ -4,8 +4,10 @@ FINAL launcher identity: the approved no-shield mountains / trees / river / sun 
 
 The launcher implementation uses a binary WebP source derived directly from the supplied approved reference. The build validates the approved source SHA-256 before generating launcher resources.
 
-A physical-device check of version `0.1.1-foundation` identified that Android's adaptive-icon mask was visually enlarging/cropping the composition because the full artwork had been placed across the complete 108 dp adaptive layer. Android normally exposes the inner 72 dp while reserving 18 dp on each side for masking and effects.
+Physical-device testing of version `0.1.1-foundation` showed that the first adaptive implementation was visually oversized/cropped. Version `0.1.2-foundation` corrected the scale by insetting the approved landscape, but physical-device testing then exposed a second implementation defect: the same landscape was also retained as the full-size adaptive background, so duplicate sun, mountain and tree fragments appeared around the inset foreground.
 
-PR #3 (`Fix adaptive launcher icon framing`) corrects that implementation without changing the approved artwork: the original scene remains full-bleed behind the adaptive mask and the same unchanged scene is inset 18 dp on each side for the visible foreground viewport. PR CI run #14 passed unit tests, lint, debug assembly and APK upload. PR #3 was merged into `main` as `f3e546b2d1d0dfd2bf58098a17d870cf4558e9bc`; post-merge Android CI run #15 also passed and produced `trailcharter-debug-run-15`.
+PR #4 (`Remove duplicate adaptive launcher artwork`) removes that duplicate composition. The adaptive icon now uses one unchanged copy of the approved landscape in the inset foreground with the approved pale neutral brand background (`#F2ECE2`) behind it. No artwork is redrawn or reinterpreted.
 
-The resulting APK is versionCode 3 / versionName `0.1.2-foundation`; its SHA-256 is `c17724ed4a3e8e1d0457ca1acade4074dd49c0b619902ae832cf08c982a3246b`. Physical-device confirmation of the corrected framing is still pending and should be treated as the final acceptance check for this launcher-size correction.
+PR CI run #16 passed unit tests, lint, debug assembly and APK upload. PR #4 was merged into `main` as `bae7e0e6b70f2136b6085be76c7024f92af3b783`; post-merge Android CI run #17 also passed and produced artifact `trailcharter-debug-run-17` (artifact ID `9690611584`).
+
+The resulting APK is versionCode 4 / versionName `0.1.3-foundation`; its SHA-256 is `5ffb65a8436a6445d4f216ee4bf72b04c75e2fdb204463f1f1f2152d21d000db`. Physical-device confirmation remains required before this adaptive-icon framing is treated as accepted.
