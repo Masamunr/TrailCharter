@@ -52,6 +52,13 @@ android {
 
     sourceSets { getByName("main").res.srcDir(generatedLauncherResDir) }
 
+    // PMTiles already carries its own tile compression. Keeping the archive itself stored rather
+    // than deflated also lets AssetManager.openFd() provide a stable descriptor/length when the
+    // spike installs an embedded regional package into app-private storage.
+    androidResources {
+        noCompress += "pmtiles"
+    }
+
     signingConfigs {
         if (ciSigningConfigured) {
             create("continuityDebug") {
