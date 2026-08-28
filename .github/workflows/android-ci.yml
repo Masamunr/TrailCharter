@@ -71,6 +71,8 @@ jobs:
           SPIKE_BBOX="-4.22,52.97,-3.95,53.18"
           ASSET_DIR="app/src/debug/assets/map_spike"
           TOOL_DIR="$RUNNER_TEMP/pmtiles-cli"
+          TERRAIN_LOW="$RUNNER_TEMP/eryri-terrain-z0-z12.pmtiles"
+          TERRAIN_HIGH="$RUNNER_TEMP/eryri-terrain-z13-z15.pmtiles"
 
           mkdir -p "$TOOL_DIR" "$ASSET_DIR"
           curl --fail --location --retry 3 --silent --show-error \
@@ -88,17 +90,32 @@ jobs:
             "https://data.source.coop/protomaps/openstreetmap/v4.pmtiles" \
             "$ASSET_DIR/eryri-basemap.pmtiles" \
             --bbox="$SPIKE_BBOX" \
-            --maxzoom=14
+            --maxzoom=15
 
-          # Mapterhorn's global z0-z12 Terrarium PMTiles archive supplies local relief data.
+          # Mapterhorn's global archive supplies z0-z12 terrain. Eryri sits wholly inside the
+          # z6 shard 6-31-20, whose higher-resolution terrain is extracted through z15. Merge
+          # both extracts so the phone still reads one completely local PMTiles terrain package.
           "$PMTILES_BIN" extract \
             "https://download.mapterhorn.com/planet.pmtiles" \
-            "$ASSET_DIR/eryri-terrain.pmtiles" \
+            "$TERRAIN_LOW" \
             --bbox="$SPIKE_BBOX" \
             --maxzoom=12
 
+          "$PMTILES_BIN" extract \
+            "https://download.mapterhorn.com/6-31-20.pmtiles" \
+            "$TERRAIN_HIGH" \
+            --bbox="$SPIKE_BBOX" \
+            --maxzoom=15
+
+          rm -f "$ASSET_DIR/eryri-terrain.pmtiles"
+          "$PMTILES_BIN" merge \
+            "$TERRAIN_LOW" \
+            "$TERRAIN_HIGH" \
+            "$ASSET_DIR/eryri-terrain.pmtiles"
+
           echo "Offline map spike assets:"
           ls -lh "$ASSET_DIR"
+          du -h "$ASSET_DIR"/*.pmtiles
           "$PMTILES_BIN" show "$ASSET_DIR/eryri-basemap.pmtiles"
           "$PMTILES_BIN" show "$ASSET_DIR/eryri-terrain.pmtiles"
 
