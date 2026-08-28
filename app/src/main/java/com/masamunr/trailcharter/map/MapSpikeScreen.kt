@@ -41,6 +41,8 @@ import org.maplibre.android.maps.MapView
  * This bypasses MapLibre Compose for map-surface tests while deliberately mirroring the lifecycle
  * ordering used by MapLibre Compose itself: the Android view is created first, then a Lifecycle
  * observer forwards ON_CREATE/START/RESUME and their matching teardown events to the MapView.
+ * MapLibre is explicitly forced to disconnected mode so its ConnectivityReceiver never queries
+ * ConnectivityManager; TrailCharter therefore keeps ACCESS_NETWORK_STATE absent from the APK.
  * A process-wide uncaught-exception handler persists any Java stack trace before delegating to
  * Android's normal crash handler.
  */
@@ -95,9 +97,9 @@ internal fun MapSpikeScreen() {
 
         if (stage == DiagnosticStage.LIBRARY_INIT_ONLY) {
             try {
-                MapLibre.getInstance(context.applicationContext)
+                initialiseOfflineMapLibre(context)
                 record(stage, "PASSED")
-                status = "PASS: ${stage.label}. No MapView was created."
+                status = "PASS: ${stage.label}. MapLibre is forced offline; no MapView was created."
             } catch (error: Throwable) {
                 val failure = "FAILED: ${error::class.java.simpleName}: ${error.message.orEmpty()}"
                 record(stage, failure)
@@ -172,7 +174,7 @@ private fun NativeMapStage(
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { viewContext ->
-                MapLibre.getInstance(viewContext.applicationContext)
+                initialiseOfflineMapLibre(viewContext)
                 MapView(
                     viewContext,
                     MapLibreMapOptions.createFromAttributes(viewContext)
@@ -234,7 +236,7 @@ private fun DiagnosticMenu(
         ) {
             Text("TrailCharter native map diagnostic", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "This isolates library loading, SurfaceView rendering and TextureView rendering using MapLibre's documented lifecycle ordering. Reopen after any crash.",
+                "This isolates library loading, SurfaceView rendering and TextureView rendering with MapLibre forced offline. Reopen after any crash.",
                 style = MaterialTheme.typography.bodyMedium,
             )
 
@@ -273,7 +275,7 @@ private fun DiagnosticMenu(
             }
 
             Text(
-                "Stage 1 creates no map surface. Stages 2 and 3 bypass MapLibre Compose and use the native Android MapView directly. No PMTiles or network data is used.",
+                "Stage 1 creates no map surface. Stages 2 and 3 use native Android MapView directly. No PMTiles, Internet permission or network-state permission is used.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -302,6 +304,11 @@ private enum class DiagnosticStage(val label: String) {
     LIBRARY_INIT_ONLY("Library init only"),
     DIRECT_SURFACE_MAP("Direct SurfaceView map"),
     DIRECT_TEXTURE_MAP("Direct TextureView map"),
+}
+
+private fun initialiseOfflineMapLibre(context: Context) {
+    MapLibre.getInstance(context.applicationContext)
+    MapLibre.setConnected(false)
 }
 
 private fun latestExitSummary(context: Context): String? {
