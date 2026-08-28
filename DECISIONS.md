@@ -57,6 +57,9 @@
 - TrailCharter continues the same project history previously discussed under Altrove and Adventure.
 - Android-first, privacy-first, offline-first where practical, open-source intended.
 - OpenStreetMap foundation.
+- **Magnetic route planning:** the chosen routing architecture must support interactive route points snapping/recalculating along known routable paths, roads and trails, with user override/manual geometry where automatic routing is inappropriate. Offline magnetic routing should work once the relevant routing package is installed.
+- **Topographic capability:** the map architecture must preserve a practical path to terrain-oriented mapping, contours/elevation information and hillshade/shaded relief where technically and legally practical.
+- **Aerial-imagery capability:** the map architecture must permit an optional aerial imagery layer later without replacing the core renderer/data model; imagery remains optional and subject to separate licensing/storage/network investigation.
 - Organic Maps may be reused/integrated but TrailCharter must retain its own identity.
 - No core account, ads, default telemetry or silent uploads.
 - Transparency by Design.
@@ -80,6 +83,9 @@
 - exact TrailCharter backup archive format and optional user-controlled backup encryption
 - Organic Maps technical relationship
 - UK offline map architecture and package/distribution approach
+- exact terrain/contour/hillshade data source, resolution and package strategy
+- aerial imagery source/licensing/offline availability
+- **live traffic as an optional privacy-sensitive network feature:** must be off by default, explicitly enabled/user-initiated, isolated behind the network boundary, and must never justify background tracking or silent location uploads
 - safety tools
 - pack/food/water models
 - journal model
