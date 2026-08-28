@@ -1,16 +1,33 @@
 # TrailCharter Decisions
 
 ## FINAL
+
+### Android launcher identity
+- The FINAL Android launcher identity uses the approved shield treatment containing the approved mountains / trees / river / sun landscape composition.
+- The internal landscape composition remains unchanged: no changed mountain silhouettes, extra trees, new river/path geometry or visual reinterpretation.
+- From `0.1.5-foundation` onward, the shield is centred on the TrailCharter dark-green field (`#1F3D2E`) and constrained within Android's centred 66 dp never-clipped adaptive-icon safe zone.
+- Android/OEM launcher masks may crop the surrounding dark-green field, but must not crop or alter the shield/landscape composition.
+- The `0.1.5-foundation` implementation was physically accepted on-device on 2026-08-28 after earlier no-shield and full-size shield implementations proved unsuitable for Android adaptive masking.
+
 ### Seasonal icon system
-- Remove shield/container.
-- Preserve the same core mountains/trees/river/sun composition.
-- Expand/crop that artwork to fill circle, square and rounded-square masks.
-- No extra trees, changed mountains, new river shape or restyling.
+- Seasonal launcher variants remain FINAL in principle but are deferred until explicitly requested.
+- Spring, Summer, Autumn and Winter must use the same accepted shield/container geometry and the exact same landscape composition.
+- Seasonal variants may change palette only, plus any strictly necessary technical crop/scale that preserves the accepted Android safe-zone geometry.
+- No extra trees, changed mountains, new river shape or restyling of the composition.
 - Spring: fresher, lighter, less green-dominant.
 - Summer: approved current palette.
 - Autumn: retain green, tinged with restrained orange/gold.
 - Winter: approved current palette.
-- **Launcher identity from foundation onward:** all installable TrailCharter builds moving forward use the approved no-shield landscape launcher identity rather than a generic/placeholder app icon. Android adaptive-icon resources may crop/scale the approved artwork only as required for platform masks; they must not redesign the composition.
+
+### Root-cause engineering principle
+- When implementation begins cycling through repeated tweaks without solving the same underlying problem, stop trial-and-error iteration.
+- Identify the actual root cause using platform specifications, source evidence, reproducible diagnostics or other authoritative technical evidence, then implement a deterministic standards-based fix.
+- Exploration and prototyping remain valid where the problem is genuinely unresolved, but repeated superficial adjustments to the same failure mode are not an acceptable development strategy.
+
+### Visual-generation principle
+- Do not generate, draw, redesign, edit or visually reinterpret images/artwork unless the user explicitly asks for visual generation or editing.
+- Existing approved visual assets should be reused rather than recreated.
+- Inspection, analysis and strictly technical packaging/cropping/scaling needed for platform compatibility are permitted only where they preserve the approved artwork and agreed composition.
 
 ## AGREE
 - **TrailCharter is the current agreed product name.** It remains AGREE rather than FINAL until deliberately locked for public/release identity.
@@ -53,6 +70,7 @@
 - Previous AGREE direction: live location sharing as an in-principle product capability. Superseded on 2026-08-28 by the decision to remove live location sharing from the current product/release scope.
 - **Altrove as the product name is rejected/superseded** after clearance identified a directly adjacent active travel-planning app using the name.
 - The historical repository path `Masamunr/altrove` was superseded on 2026-08-28 when the repository was renamed to `Masamunr/TrailCharter` and made public.
+- The earlier FINAL direction that Android launcher builds should use the no-shield full-bleed landscape was explicitly reopened during physical-device testing and superseded on 2026-08-28 by the physically accepted shield + Android safe-zone implementation in `0.1.5-foundation`.
 
 ## EXPLORE
 - Adventure IA
