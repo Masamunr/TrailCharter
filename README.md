@@ -12,4 +12,6 @@ Core architecture: device-resident and local-first, with **no TrailCharter-owned
 
 Live location sharing is outside the current product/release scope.
 
-Historical repository path retained for continuity: `Masamunr/altrove`.
+Repository: **`Masamunr/TrailCharter` — public**.
+
+The first Android foundation is implemented on `main` and CI-verified with unit tests, lint and debug assembly. The current in-app foundation screen is intentionally provisional while the Adventure information architecture and wider visual language remain under design.
