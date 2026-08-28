@@ -6,7 +6,13 @@
 ## Product name
 **TrailCharter — AGREE**
 
-The name is agreed for current development and branding work but is not yet FINAL. The existing repository path `Masamunr/altrove` is retained for continuity until a later deliberate rename decision.
+The name is agreed for current development and branding work but is not yet FINAL.
+
+## Repository
+- Authoritative repository: **`Masamunr/TrailCharter`**
+- Visibility: **public**
+- Historical path: `Masamunr/altrove` (superseded by repository rename on 2026-08-28)
+- GitHub remains the authoritative source of truth for project documentation and Android source.
 
 ## Current product boundary
 - Geographic scope: **United Kingdom only** — England, Scotland, Wales and Northern Ireland
@@ -33,7 +39,8 @@ The name is agreed for current development and branding work but is not yet FINA
 - JDK: `17`
 - Build scripts: Kotlin DSL
 - Dependency/version management: Gradle version catalog (`libs.versions.toml`)
-- Status: **AGREE**
+- Committed Gradle Wrapper generated and checksum-verified from Gradle 8.13
+- Status: **AGREE / IMPLEMENTED**
 
 ## Compose / UI foundation
 - Jetpack Compose-first UI
@@ -46,103 +53,108 @@ The name is agreed for current development and branding work but is not yet FINA
 - Accessibility-first component behaviour and semantics
 - No ordinary XML screen layouts
 - Final primary navigation model remains **EXPLORE**
-- Status: **AGREE**
+- Current foundation screen is explicitly provisional and does not lock the final in-app design language or navigation
+- Status: **AGREE / FOUNDATION IMPLEMENTED**
 
 The UI foundation does not lock TrailCharter into stock Material appearance. Material 3 supplies reliable interaction/accessibility mechanics; TrailCharter retains control over the app's overall look, layout, components, motion and visual design.
 
 ## Local persistence foundation
-- Room for structured TrailCharter data
-- DataStore for preferences/settings
+- Room for structured TrailCharter data — **AGREE, implementation deferred until the first structured Adventure model is defined**
+- DataStore for preferences/settings — initial seam implemented
 - App-managed files for GPX, attachments and later offline/map packages
 - Storage access hidden behind repository/interfaces rather than used directly by UI
-- KSP for generated Room/database code
+- KSP for generated Room/database code when Room is introduced
 - Core/personal Adventure data stored locally as the authoritative copy
 - No cloud/backend dependency for core functionality
-- Explicit versioned migrations from the beginning; no destructive production migrations
+- Explicit versioned migrations from the beginning once the Room database exists; no destructive production migrations
 - Android Keystore-backed handling for credentials/key material if later required
 - Enhanced application-level encryption beyond normal Android app sandbox/device encryption remains **EXPLORE** pending a proper threat model
-- Status: **AGREE**
+- Status: **AGREE / PARTIAL FOUNDATION IMPLEMENTED**
 
 ## Privacy / network / backup foundation
 - TrailCharter is **network-silent by default**
-- Initial application does not declare `INTERNET` permission
+- Current foundation application does **not** declare `INTERNET` permission
+- Current manifest declares no location or broad-storage permission
 - When network-dependent features arrive, access is centralised behind a TrailCharter network boundary and occurs only for clear user-initiated or explicitly enabled functions
 - Merely opening/using core TrailCharter functionality must not create background connections
 - No advertising, analytics, telemetry, tracking SDKs or silent uploads
-- Ordinary future networking uses secure transport with cleartext HTTP disabled
+- Cleartext HTTP is disabled in the current foundation
 - No TrailCharter cloud backup service
-- Automatic Android cloud backup of personal/core data disabled/excluded as far as the platform permits
-- Backup/export is user-initiated and created locally
-- System document picker / Storage Access Framework used for destinations and restore sources; users may choose their own personal provider such as Proton Drive or OneDrive if it is available to Android, without TrailCharter directly integrating/authenticating to that service
+- Automatic Android cloud backup of personal/core data disabled/excluded in the current foundation
+- Backup/export remains user-initiated and locally created
+- System document picker / Storage Access Framework remains the agreed destination/restore model
 - Least-privilege contextual permissions; no startup permission barrage; graceful operation when denied
 - Prefer Photo Picker and Storage Access Framework over broad media/storage access
 - Background location requires a separate future decision
-- Privacy Status will show a clear location-tracking `On` / `Off` state
+- Provisional Privacy Status foundation exposes clear location tracking, internet and cloud-backup states
 - Exact backup archive format and optional user-controlled backup encryption remain **EXPLORE**
-- Status: **AGREE**
+- Status: **AGREE / FOUNDATION IMPLEMENTED**
 
 ## CI / build foundation
 - GitHub Actions is the Android CI platform
-- Workflow: `.github/workflows/android-ci.yml`
+- Permanent workflow: `.github/workflows/android-ci.yml`
 - Runs on Android/build-file changes for pull requests and pushes to `main`; manual dispatch is available
 - Runner: `ubuntu-latest`
 - JDK: Temurin 17
-- Gradle: committed Gradle Wrapper with setup/caching/wrapper validation via `gradle/actions/setup-gradle`
+- Android SDK/API 36 provisioned with `android-actions/setup-android@v4`
+- Gradle: committed Gradle Wrapper with setup/caching/wrapper validation via `gradle/actions/setup-gradle@v6`
 - Verification gate: `testDebugUnitTest`, `lintDebug`, `assembleDebug`
 - Successful builds upload a debug APK artifact; failure reports/logs are uploaded where available
 - Debug APK retention: 14 days; failure reports: 7 days
 - No production signing secrets required for ordinary CI/debug builds
 - No automatic Google Play publishing at this stage
 - Detailed CI rules: `docs/architecture/CI_BUILD.md`
-- Status: **AGREE / IMPLEMENTED (workflow armed; first real run awaits Android scaffold)**
+- Status: **AGREE / IMPLEMENTED / VERIFIED**
+
+Latest authoritative verification:
+- `main` source merge: `2099d1198875f2dad624ecae86dff2bbcb04f5fc`
+- Android CI run: **#3** (`33170566092`) — **PASS**
+- Unit tests: PASS
+- Android lint: PASS
+- Debug assembly: PASS
+- Artifact: `trailcharter-debug-run-3`
+- Artifact digest: `sha256:66863ec48d90cffc6dc9a68122db6059402a8babf6614f148ba2eab2fecd480b`
 
 ## Implementation
-Android implementation is authorised as a controlled foundation phase.
+The first Android foundation is now implemented and merged to `main`.
 
-No production Android application has been implemented yet. The CI workflow is now present and path-gated; the next Android/build-file commit will provide the first meaningful CI run.
+It is an installable development foundation, not a feature-complete or production-release application. It establishes the agreed Android/toolchain/privacy seams without prematurely locking the Adventure information architecture, navigation model, mapping architecture or wider in-app visual design.
 
 ## Current state
-- Project history consolidated.
-- Constitution established.
-- Vision established.
-- Decisions classified into EXPLORE / AGREE / FINAL.
-- TrailCharter selected as the current agreed product name following deeper collision/clearance checks.
+- Project history consolidated and governance documents established.
+- TrailCharter selected as the current agreed product name.
 - Current product/release geography narrowed to the United Kingdom only.
 - Live location sharing removed from the current product/release scope.
 - Zero-owned-server architecture agreed for core TrailCharter functionality.
+- Repository renamed to `Masamunr/TrailCharter`, made public after a pre-publication history/secret audit, and retained as authoritative source of truth.
 - Android package/application identity agreed as `com.masamunr.trailcharter`.
 - Android SDK baseline agreed as API 28 minimum and API 36 target/compile.
-- Android build toolchain agreed as AGP 8.13.2 / Gradle 8.13 / Kotlin 2.3.21 / JDK 17 with Kotlin DSL and version catalog.
-- Compose-first, Material 3-backed UI foundation agreed while preserving full TrailCharter visual-design control.
-- Local-first persistence architecture agreed using Room, DataStore and app-managed files behind repository boundaries.
-- Network-silent privacy rules, local-only user-controlled backup/export, contextual permissions and location-tracking privacy status are agreed.
-- GitHub Actions CI/build foundation agreed and implemented as a path-gated workflow ready for the Android scaffold.
-- Altrove as a product name is rejected/superseded because of a directly adjacent active travel-planning product using that name.
-- Seasonal icon system locked as FINAL.
-- GitHub repository exists at `Masamunr/altrove`.
-- GitHub connector access was successfully restored and write-tested on 2026-08-27.
-- The portable baseline documentation has been reconciled into the repository.
-- GitHub is the authoritative source of truth for project documentation.
-- Brand specification is preserved at `docs/brand/BRAND_IDENTITY.md`.
-- Asset gap remains: the exact approved no-shield launcher-art reference binary still needs to be committed to the repository; its visual rules are preserved in the brand specification.
-- On 2026-08-27 the previous implementation gate was reopened: controlled Android foundation development may proceed while product and architecture design continue.
+- Android build toolchain agreed and implemented as AGP 8.13.2 / Gradle 8.13 / Kotlin 2.3.21 / JDK 17 with Kotlin DSL and version catalog.
+- Compose-first, Material 3-backed UI foundation implemented while preserving full TrailCharter visual-design control.
+- DataStore settings seam implemented; Room remains deliberately deferred until the structured Adventure model exists.
+- Network-silent privacy rules are reflected in the current foundation manifest/configuration: no INTERNET/location/broad-storage permissions, cloud backup excluded, and cleartext traffic disabled.
+- CI/build foundation is operational and verified on both the foundation PR and post-merge `main`.
+- PR #1 (`Add TrailCharter Android foundation`) merged successfully on 2026-08-28.
+- Seasonal icon system remains locked as FINAL.
+- Brand specification remains at `docs/brand/BRAND_IDENTITY.md`.
+- Asset gap remains: the exact approved no-shield launcher-art reference binary still needs to be committed to the repository; its visual rules remain authoritative in the brand specification.
 
 ## Implementation guardrails
 - Do not prematurely hard-code unresolved EXPLORE decisions.
-- Keep early architecture modular and replaceable where major technical choices remain open.
+- Keep architecture modular and replaceable where major technical choices remain open.
 - Prioritise privacy-first, offline-first and local-first foundations.
 - Do not introduce accounts, ads, analytics, telemetry or silent uploads.
 - Do not introduce a TrailCharter-owned application backend for core functionality.
 - Treat UK mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
 
 ## Next priorities
-1. Create the Android foundation scaffold and achieve the first CI-verified installable debug APK.
-2. Preserve the exact FINAL launcher icon reference asset in GitHub.
+1. Preserve the exact FINAL launcher icon reference asset in GitHub.
+2. Define the Adventure information model and main UX/navigation model.
 3. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
-4. Define the Adventure information model and main UX/navigation model.
-5. Investigate UK map/offline architecture and package distribution within the zero-owned-server constraint.
+4. Investigate UK map/offline architecture and package distribution within the zero-owned-server constraint.
+5. Build the first useful Adventure vertical slice once the information model is agreed.
 
 ## Implementation gate
 **OPEN — AGREE**
 
-TrailCharter may enter iterative foundation development alongside continued product and architecture design. Unresolved EXPLORE decisions remain open and must not be treated as settled merely because implementation has begun.
+TrailCharter may continue iterative development alongside product and architecture design. Unresolved EXPLORE decisions remain open and must not be treated as settled merely because the Android foundation now exists.
