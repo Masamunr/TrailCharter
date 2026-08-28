@@ -40,7 +40,7 @@ val prepareLauncherIcon by tasks.registering {
         mipmapDir.mkdirs()
         mipmapDir.resolve("ic_launcher.webp").writeBytes(artwork)
         mipmapDir.resolve("ic_launcher_round.webp").writeBytes(artwork)
-        mipmapDir.resolve("ic_launcher_foreground.webp").writeBytes(artwork)
+        mipmapDir.resolve("ic_launcher_artwork.webp").writeBytes(artwork)
     }
 }
 
@@ -52,8 +52,8 @@ android {
         applicationId = "com.masamunr.trailcharter"
         minSdk = 28
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.1.1-foundation"
+        versionCode = 3
+        versionName = "0.1.2-foundation"
     }
 
     sourceSets {
