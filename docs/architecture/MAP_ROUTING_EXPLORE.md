@@ -14,6 +14,47 @@ This document records the agreed next technical workstream after the first playa
 - Prefer replaceable boundaries between **map rendering**, **routing**, **map/routing package management**, and the TrailCharter Adventure/Stage/Place model.
 - The previously recorded date-range picker header-alignment issue remains a minor next-pass UI item and is not a standalone build reason.
 
+## Product capability requirements
+
+Status: **AGREE CAPABILITY / EXPLORE IMPLEMENTATION**
+
+The architecture selected for TrailCharter must preserve a credible implementation path for the following mapping capabilities. A technical choice that makes these impractical without a strong reason should be rejected.
+
+### Magnetic route planning / route snapping
+
+- Interactive route planning should support a **magnetic** mode in which user-selected route points snap to known routable paths/roads/trails rather than requiring freehand geometry.
+- Snapping should be driven by the routing graph/profile so walking, cycling and later driving modes can follow appropriate known networks.
+- The user must remain able to alter the proposed route and, where justified, use manual/free geometry rather than being trapped by an incorrect automatic route.
+- Route snapping and recalculation should work offline once the required routing package is installed.
+
+This is a **required route-planning capability**, not merely a visual enhancement.
+
+### Topographic mapping and relief
+
+- TrailCharter should support a useful **topographic map presentation** for outdoor planning.
+- The selected renderer/package architecture must be capable of showing terrain-oriented styling, contour/elevation information and **hillshade/shaded relief where technically and legally practical**.
+- Terrain/elevation data may be packaged separately from the base vector map so users are not forced to download it when unnecessary.
+- Exact DEM/contour sources, resolution, storage cost and update process remain EXPLORE.
+
+### Aerial / satellite imagery
+
+- The map architecture must not prevent TrailCharter from offering an optional **aerial imagery layer** later.
+- Aerial imagery is expected to have different licensing, attribution, storage and network constraints from the OSM-derived base map and should therefore remain an interchangeable map layer rather than being baked into core map data.
+- Online imagery, user-downloaded offline imagery and provider-specific limitations must be investigated before a source is selected.
+- Aerial imagery must never be required for core/offline TrailCharter use.
+
+### Live traffic
+
+Status: **EXPLORE / PRIVACY-SENSITIVE NETWORK FEATURE**
+
+- Live traffic is worth investigating for road/travel stages, but it is not part of the offline core.
+- Any live-traffic implementation would inherently require current external data and therefore network access.
+- It must be **off by default**, clearly user-initiated or explicitly enabled, and isolated behind TrailCharter's network boundary.
+- Merely opening TrailCharter or viewing an offline map must not contact a traffic provider.
+- No TrailCharter-owned server should be required; any external traffic source must be replaceable and its privacy/licensing terms reviewed before adoption.
+- The app should disclose when live traffic is active and what external dependency is being contacted.
+- Traffic data must not be allowed to become a justification for background tracking, analytics or silent location uploads.
+
 ## Current candidate assessment
 
 ### MapLibre Native
@@ -120,7 +161,9 @@ The most promising modular direction currently looks like:
 3. **Offline visual packages**: app-managed regional vector packages, likely a single-file format such as PMTiles if the toolchain proves suitable.
 4. **Routing boundary**: benchmark BRouter and valhalla-mobile on a physical Android device using representative UK walking routes before choosing.
 5. **Routing packages**: preprocessed, user-downloadable regional data; routing remains fully on-device once packages are installed.
-6. **No owned runtime backend**: any package hosting/update mechanism must be static/replaceable and must not become a required TrailCharter application server.
+6. **Optional map layers**: terrain/hillshade and aerial imagery remain separate from the base map package so they can carry different data sources, licences and download behaviour.
+7. **Optional live data layer**: live traffic, if ever adopted, remains network-dependent, isolated and explicitly user-controlled.
+8. **No owned runtime backend**: any package hosting/update mechanism must be static/replaceable and must not become a required TrailCharter application server.
 
 This architecture deliberately avoids binding map display, routing logic and TrailCharter's Adventure model into one vendor/project stack.
 
@@ -138,13 +181,17 @@ Status: **EXPLORE**.
 
 - Build/integration feasibility with the TrailCharter Android toolchain and minSdk 28.
 - Representative UK walking route quality, including public rights of way/trails and access-sensitive cases where OSM data permits.
+- **Magnetic route-planning quality:** route-point snapping, recalculation, intermediate via points and manual override behaviour.
 - Route calculation time and memory on physical Android hardware.
 - Battery behaviour during repeated route planning.
 - Offline package sizes for realistic UK regions.
 - Boundary behaviour when a route crosses two downloaded packages.
 - Route distance, elevation and ETA capabilities.
+- Topographic styling, contours/terrain and hillshade feasibility, quality and storage cost.
+- Ability to add an aerial-imagery source later without replacing the renderer/core map architecture.
 - GPX import/export fit.
-- Licensing/attribution obligations for both software and distributed data.
+- Licensing/attribution obligations for software, OSM-derived data, terrain data and any optional aerial/traffic provider.
+- Privacy/network behaviour for any optional live traffic source.
 - Update/distribution design that does not require a TrailCharter-owned server.
 
 ## Authoritative research references
