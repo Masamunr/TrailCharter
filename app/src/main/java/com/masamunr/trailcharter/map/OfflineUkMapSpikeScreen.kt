@@ -124,6 +124,7 @@ private fun OfflineEryriMap(packages: OfflineMapPackages) {
                         map.setStyle(
                             Style.Builder().fromJson(offlineEryriStyle(packages)),
                         ) {
+                            map.setMaxZoomPreference(16.0)
                             map.cameraPosition = CameraPosition.Builder()
                                 .target(LatLng(53.0685, -4.0760))
                                 .zoom(11.4)
@@ -150,7 +151,7 @@ private fun OfflineEryriMap(packages: OfflineMapPackages) {
                 Text("TrailCharter offline UK map spike", style = MaterialTheme.typography.titleSmall)
                 Text(status, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    "Eryri • vector paths/roads + local hillshade",
+                    "Eryri • offline paths/roads/water + local hillshade",
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Text(
@@ -228,6 +229,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
             "basemap": {
               "type": "vector",
               "url": "pmtiles://file://$basemapPath",
+              "maxzoom": 14,
               "attribution": "© OpenStreetMap contributors / Protomaps"
             },
             "terrain": {
@@ -235,6 +237,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "url": "pmtiles://file://$terrainPath",
               "tileSize": 512,
               "encoding": "terrarium",
+              "maxzoom": 12,
               "attribution": "© Mapterhorn data sources"
             }
           },
@@ -284,7 +287,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "type": "hillshade",
               "source": "terrain",
               "paint": {
-                "hillshade-exaggeration": 0.55,
+                "hillshade-exaggeration": 0.48,
                 "hillshade-shadow-color": "#5E574B",
                 "hillshade-highlight-color": "#FFFDF5",
                 "hillshade-accent-color": "#776F60"
@@ -295,7 +298,50 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "type": "fill",
               "source": "basemap",
               "source-layer": "water",
+              "filter": ["==", ["geometry-type"], "Polygon"],
               "paint": { "fill-color": "#B8D5DC", "fill-opacity": 0.92 }
+            },
+            {
+              "id": "water-rivers-canals",
+              "type": "line",
+              "source": "basemap",
+              "source-layer": "water",
+              "minzoom": 10,
+              "filter": [
+                "all",
+                ["==", ["geometry-type"], "LineString"],
+                [
+                  "match", ["get", "kind_detail"],
+                  ["river", "canal"], true, false
+                ]
+              ],
+              "layout": { "line-cap": "round", "line-join": "round" },
+              "paint": {
+                "line-color": "#9BC7D2",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.8, 14, 2.2, 16, 3.0],
+                "line-opacity": 0.95
+              }
+            },
+            {
+              "id": "water-streams-drains",
+              "type": "line",
+              "source": "basemap",
+              "source-layer": "water",
+              "minzoom": 12,
+              "filter": [
+                "all",
+                ["==", ["geometry-type"], "LineString"],
+                [
+                  "match", ["get", "kind_detail"],
+                  ["stream", "ditch", "drain"], true, false
+                ]
+              ],
+              "layout": { "line-cap": "round", "line-join": "round" },
+              "paint": {
+                "line-color": "#A8CED6",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.55, 14, 1.2, 16, 1.8],
+                "line-opacity": 0.9
+              }
             },
             {
               "id": "buildings",
@@ -306,20 +352,80 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "paint": { "fill-color": "#CEC7BD", "fill-opacity": 0.78 }
             },
             {
-              "id": "roads",
+              "id": "major-roads",
               "type": "line",
               "source": "basemap",
               "source-layer": "roads",
               "filter": [
-                "!", [
-                  "match", ["get", "kind_detail"],
-                  ["path", "track", "footway", "bridleway", "cycleway", "steps"],
-                  true, false
+                "match", ["get", "kind"],
+                ["highway", "major_road"], true, false
+              ],
+              "layout": { "line-cap": "round", "line-join": "round" },
+              "paint": {
+                "line-color": "#A99985",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1.1, 14, 3.0, 16, 4.4],
+                "line-opacity": 0.96
+              }
+            },
+            {
+              "id": "minor-roads",
+              "type": "line",
+              "source": "basemap",
+              "source-layer": "roads",
+              "minzoom": 10,
+              "filter": [
+                "match", ["get", "kind"],
+                ["minor_road"], true, false
+              ],
+              "layout": { "line-cap": "round", "line-join": "round" },
+              "paint": {
+                "line-color": "#B8AA98",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.7, 14, 1.9, 16, 2.8],
+                "line-opacity": 0.94
+              }
+            },
+            {
+              "id": "other-roads",
+              "type": "line",
+              "source": "basemap",
+              "source-layer": "roads",
+              "minzoom": 11,
+              "filter": [
+                "all",
+                [
+                  "!", [
+                    "match", ["get", "kind"],
+                    ["highway", "major_road", "minor_road", "path", "rail", "aerialway", "ferry"],
+                    true, false
+                  ]
+                ],
+                [
+                  "!", [
+                    "match", ["get", "kind_detail"],
+                    ["track", "path", "cycleway", "bridleway", "steps", "sidewalk", "crossing"],
+                    true, false
+                  ]
                 ]
               ],
+              "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
-                "line-color": "#B7A895",
-                "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.7, 14, 2.4],
+                "line-color": "#C1B5A5",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.5, 14, 1.3, 16, 2.0],
+                "line-opacity": 0.9
+              }
+            },
+            {
+              "id": "tracks",
+              "type": "line",
+              "source": "basemap",
+              "source-layer": "roads",
+              "minzoom": 11,
+              "filter": ["==", ["get", "kind_detail"], "track"],
+              "layout": { "line-cap": "round", "line-join": "round" },
+              "paint": {
+                "line-color": "#8E765F",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.7, 14, 1.6, 16, 2.2],
+                "line-dasharray": [3, 1.6],
                 "line-opacity": 0.95
               }
             },
@@ -328,16 +434,18 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "type": "line",
               "source": "basemap",
               "source-layer": "roads",
+              "minzoom": 11,
               "filter": [
                 "match", ["get", "kind_detail"],
-                ["path", "track", "footway", "bridleway", "cycleway", "steps"],
+                ["path", "cycleway", "bridleway", "steps", "sidewalk", "crossing"],
                 true, false
               ],
+              "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
-                "line-color": "#8A6650",
-                "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.7, 14, 1.8],
-                "line-dasharray": [2, 1.4],
-                "line-opacity": 0.95
+                "line-color": "#7F5F49",
+                "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.7, 14, 1.6, 16, 2.2],
+                "line-dasharray": [2, 1.5],
+                "line-opacity": 0.98
               }
             },
             {
@@ -348,7 +456,7 @@ private fun offlineEryriStyle(packages: OfflineMapPackages): String {
               "paint": {
                 "line-color": "#8D877C",
                 "line-width": 0.7,
-                "line-opacity": 0.45,
+                "line-opacity": 0.35,
                 "line-dasharray": [3, 2]
               }
             }
