@@ -43,6 +43,19 @@ The name is agreed for current development and branding work but is not yet FINA
 
 The UI foundation does not lock TrailCharter into stock Material appearance. Material 3 supplies reliable interaction/accessibility mechanics; TrailCharter retains control over the app's overall look, layout, components, motion and visual design.
 
+## Local persistence foundation
+- Room for structured TrailCharter data
+- DataStore for preferences/settings
+- App-managed files for GPX, attachments and later offline/map packages
+- Storage access hidden behind repository/interfaces rather than used directly by UI
+- KSP for generated Room/database code
+- Core/personal Adventure data stored locally as the authoritative copy
+- No cloud/backend dependency for core functionality
+- Explicit versioned migrations from the beginning; no destructive production migrations
+- Android Keystore-backed handling for credentials/key material if later required
+- Enhanced application-level encryption beyond normal Android app sandbox/device encryption remains **EXPLORE** pending a proper threat model
+- Status: **AGREE**
+
 ## Implementation
 Android implementation is authorised as a controlled foundation phase.
 
@@ -58,6 +71,7 @@ No production Android application has been implemented yet.
 - Android SDK baseline agreed as API 28 minimum and API 36 target/compile.
 - Android build toolchain agreed as AGP 8.13.2 / Gradle 8.13 / Kotlin 2.3.21 / JDK 17 with Kotlin DSL and version catalog.
 - Compose-first, Material 3-backed UI foundation agreed while preserving full TrailCharter visual-design control.
+- Local-first persistence architecture agreed using Room, DataStore and app-managed files behind repository boundaries.
 - Altrove as a product name is rejected/superseded because of a directly adjacent active travel-planning product using that name.
 - Seasonal icon system locked as FINAL.
 - GitHub repository exists at `Masamunr/altrove`.
@@ -76,13 +90,12 @@ No production Android application has been implemented yet.
 - Treat mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
 
 ## Next priorities
-1. Define local persistence/data boundaries.
-2. Define privacy/network rules and backup/export behaviour.
-3. Define CI/build pipeline.
-4. Preserve the exact FINAL launcher icon reference asset in GitHub.
-5. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
-6. Define the Adventure information model and main UX/navigation model.
-7. Investigate map/offline architecture.
+1. Define privacy/network rules and backup/export behaviour.
+2. Define CI/build pipeline.
+3. Preserve the exact FINAL launcher icon reference asset in GitHub.
+4. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
+5. Define the Adventure information model and main UX/navigation model.
+6. Investigate map/offline architecture.
 
 ## Implementation gate
 **OPEN — AGREE**
