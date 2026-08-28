@@ -1,5 +1,6 @@
 package com.masamunr.trailcharter
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,6 +59,14 @@ fun TrailCharterApp(
 ) {
     var selectedAdventureId by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingAdventure by rememberSaveable { mutableStateOf(false) }
+
+    BackHandler(enabled = creatingAdventure || selectedAdventureId != null) {
+        if (creatingAdventure) {
+            creatingAdventure = false
+        } else {
+            selectedAdventureId = null
+        }
+    }
 
     when {
         creatingAdventure -> NewAdventureScreen(
