@@ -45,6 +45,6 @@ This note records physical acceptance of the corrective Cartography Pass 2 build
 
 ## Data-source boundary
 
-Mapterhorn's regional PMTiles shards provide native terrain above z12 and are suitable for the controlled z16 terrain probe. Protomaps v4 planet basemaps contain native vector tiles only through z15. These are different ceilings and must remain explicit in both implementation and documentation.
+Mapterhorn's regional PMTiles shards provide native terrain from z13 through z17 and are suitable for the controlled z16 terrain probe. Protomaps v4 planet basemaps contain native vector tiles only through z15. These are different ceilings and must remain explicit in both implementation and documentation.
 
 A future high-detail walking overlay, if required, should be generated deterministically from open OSM-derived source data at package-build time and should contain only the extra walking-scale geometry needed to justify its storage cost.
