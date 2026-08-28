@@ -1,4 +1,4 @@
-# Altrove Roadmap
+# TrailCharter Roadmap
 
 ## Phase 0 — Product Design
 - Consolidate project history
