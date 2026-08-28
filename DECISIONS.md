@@ -14,6 +14,7 @@
 ## AGREE
 - **TrailCharter is the current agreed product name.** It remains AGREE rather than FINAL until deliberately locked for public/release identity.
 - **Android application identity:** namespace and application ID are both `com.masamunr.trailcharter`.
+- **Android SDK baseline:** `minSdk = 28`, `targetSdk = 36`, `compileSdk = 36`.
 - TrailCharter continues the same project history previously discussed under Altrove and Adventure.
 - Android-first, privacy-first, offline-first where practical, open-source intended.
 - OpenStreetMap foundation.
