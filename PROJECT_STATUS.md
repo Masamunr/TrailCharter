@@ -56,6 +56,23 @@ The UI foundation does not lock TrailCharter into stock Material appearance. Mat
 - Enhanced application-level encryption beyond normal Android app sandbox/device encryption remains **EXPLORE** pending a proper threat model
 - Status: **AGREE**
 
+## Privacy / network / backup foundation
+- Default operational state is offline
+- Initial application does not declare `INTERNET` permission
+- If networking is introduced later, it is centralised behind a TrailCharter network boundary and used only for explicit/user-enabled features rather than background connection by default
+- No advertising, analytics, telemetry, tracking SDKs or silent uploads
+- Ordinary future networking uses secure transport with cleartext HTTP disabled
+- No TrailCharter cloud backup service
+- Automatic Android cloud backup of personal/core data disabled/excluded as far as the platform permits
+- Backup/export is user-initiated and created locally
+- System document picker / Storage Access Framework used for destinations and restore sources; users may choose their own personal provider such as Proton Drive or OneDrive if it is available to Android, without TrailCharter directly integrating/authenticating to that service
+- Least-privilege contextual permissions; no startup permission barrage; graceful operation when denied
+- Prefer Photo Picker and Storage Access Framework over broad media/storage access
+- Background location requires a separate future decision
+- Privacy Status will show a clear location-tracking `On` / `Off` state
+- Exact backup archive format and optional user-controlled backup encryption remain **EXPLORE**
+- Status: **AGREE**
+
 ## Implementation
 Android implementation is authorised as a controlled foundation phase.
 
@@ -72,6 +89,7 @@ No production Android application has been implemented yet.
 - Android build toolchain agreed as AGP 8.13.2 / Gradle 8.13 / Kotlin 2.3.21 / JDK 17 with Kotlin DSL and version catalog.
 - Compose-first, Material 3-backed UI foundation agreed while preserving full TrailCharter visual-design control.
 - Local-first persistence architecture agreed using Room, DataStore and app-managed files behind repository boundaries.
+- Offline-by-default network/privacy rules, local-only user-controlled backup/export, contextual permissions and location-tracking privacy status are agreed.
 - Altrove as a product name is rejected/superseded because of a directly adjacent active travel-planning product using that name.
 - Seasonal icon system locked as FINAL.
 - GitHub repository exists at `Masamunr/altrove`.
@@ -90,12 +108,11 @@ No production Android application has been implemented yet.
 - Treat mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
 
 ## Next priorities
-1. Define privacy/network rules and backup/export behaviour.
-2. Define CI/build pipeline.
-3. Preserve the exact FINAL launcher icon reference asset in GitHub.
-4. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
-5. Define the Adventure information model and main UX/navigation model.
-6. Investigate map/offline architecture.
+1. Define CI/build pipeline.
+2. Preserve the exact FINAL launcher icon reference asset in GitHub.
+3. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
+4. Define the Adventure information model and main UX/navigation model.
+5. Investigate map/offline architecture.
 
 ## Implementation gate
 **OPEN — AGREE**
