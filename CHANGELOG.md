@@ -20,5 +20,6 @@
 - The historical repository path remains `Masamunr/altrove` for continuity while TrailCharter remains AGREE rather than FINAL.
 - The exact approved no-shield launcher-art reference binary still needs to be committed; the FINAL visual rules are preserved in `docs/brand/BRAND_IDENTITY.md`.
 
-### Implementation
+### Android foundation
+- 2026-08-28: Agreed Android namespace and application ID: `com.masamunr.trailcharter`.
 - Android implementation is authorised but no production application code has been built yet.
