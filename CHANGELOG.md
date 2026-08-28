@@ -25,4 +25,5 @@
 - 2026-08-28: Agreed SDK baseline: `minSdk = 28`, `targetSdk = 36`, `compileSdk = 36`.
 - 2026-08-28: Agreed build toolchain: Android Gradle Plugin `8.13.2`, Gradle `8.13`, Kotlin `2.3.21`, JDK `17`, Kotlin DSL and Gradle version catalog.
 - 2026-08-28: Agreed Compose/UI foundation: Compose-first, Compose BOM `2026.06.00`, Material 3 behaviour/accessibility foundation, single activity, TrailCharter-owned design system, TrailCharter-controlled seasonal palettes, no default Android dynamic colour, edge-to-edge/adaptive/accessibility-first layouts, and no ordinary XML screen layouts. Final primary navigation remains EXPLORE.
+- 2026-08-28: Agreed local-first persistence architecture: Room for structured data, DataStore for settings, app-managed files for GPX/attachments/later offline packages, repository boundaries, KSP, explicit versioned migrations with no destructive production migrations, locally authoritative core data, and Keystore-backed handling for future secrets/key material.
 - Android implementation is authorised but no production application code has been built yet.
