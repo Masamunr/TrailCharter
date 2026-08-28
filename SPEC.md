@@ -15,6 +15,12 @@
 - No ordinary XML screen layouts for app UI
 - TrailCharter controls its seasonal palettes; Android dynamic colour is not enabled by default
 - Final navigation structure remains EXPLORE and must not be prematurely locked by the Android foundation
+- Local-first persistence: Room for structured application data; DataStore for preferences/settings; app-managed files for GPX, attachments and later offline/map packages
+- Storage is hidden behind repository/interfaces rather than accessed directly by UI
+- Use KSP for generated Room/database code
+- Core/personal Adventure data is local and authoritative; no cloud/backend dependency for core functionality
+- Explicit versioned database migrations are required from the beginning; destructive production migrations are not permitted
+- Credentials or cryptographic key material, if later required, use Android Keystore-backed handling
 - Android-first
 - Privacy-first
 - Offline-first wherever practical
@@ -37,6 +43,7 @@ Whenever TrailCharter accesses GPS, downloads data, stores information, connects
 - Exact adventure information architecture
 - Primary UX: timeline/map/cards/hybrid
 - Optional Android system/dynamic colour mode
+- Enhanced application-level encryption/threat model beyond normal Android app sandbox/device encryption
 - Organic Maps reuse/integration/fork strategy
 - Offline map/routing architecture
 - Adventure Download packaging
