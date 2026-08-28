@@ -28,6 +28,21 @@ The name is agreed for current development and branding work but is not yet FINA
 - Dependency/version management: Gradle version catalog (`libs.versions.toml`)
 - Status: **AGREE**
 
+## Compose / UI foundation
+- Jetpack Compose-first UI
+- Compose BOM `2026.06.00`
+- Material 3 as the behaviour/accessibility foundation
+- Single-activity application
+- TrailCharter-owned colour, typography, shapes and component styling
+- TrailCharter-controlled seasonal palettes; Android dynamic colour is not the default
+- Edge-to-edge and responsive/adaptive layouts from inception
+- Accessibility-first component behaviour and semantics
+- No ordinary XML screen layouts
+- Final primary navigation model remains **EXPLORE**
+- Status: **AGREE**
+
+The UI foundation does not lock TrailCharter into stock Material appearance. Material 3 supplies reliable interaction/accessibility mechanics; TrailCharter retains control over the app's overall look, layout, components, motion and visual design.
+
 ## Implementation
 Android implementation is authorised as a controlled foundation phase.
 
@@ -42,6 +57,7 @@ No production Android application has been implemented yet.
 - Android package/application identity agreed as `com.masamunr.trailcharter`.
 - Android SDK baseline agreed as API 28 minimum and API 36 target/compile.
 - Android build toolchain agreed as AGP 8.13.2 / Gradle 8.13 / Kotlin 2.3.21 / JDK 17 with Kotlin DSL and version catalog.
+- Compose-first, Material 3-backed UI foundation agreed while preserving full TrailCharter visual-design control.
 - Altrove as a product name is rejected/superseded because of a directly adjacent active travel-planning product using that name.
 - Seasonal icon system locked as FINAL.
 - GitHub repository exists at `Masamunr/altrove`.
@@ -60,12 +76,13 @@ No production Android application has been implemented yet.
 - Treat mapping/routing architecture as an investigation boundary until the Organic Maps/OpenStreetMap approach is properly resolved.
 
 ## Next priorities
-1. Define remaining Android foundation choices: Compose/UI structure, local persistence boundary, privacy/network rules and CI/build pipeline.
-2. Preserve the exact FINAL launcher icon reference asset in GitHub.
-3. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
-4. Define the Adventure information model.
-5. Define the main UX/navigation model.
-6. Investigate map/offline architecture.
+1. Define local persistence/data boundaries.
+2. Define privacy/network rules and backup/export behaviour.
+3. Define CI/build pipeline.
+4. Preserve the exact FINAL launcher icon reference asset in GitHub.
+5. Continue product identity beyond the launcher icon: wordmark, typography, in-app visual design language and seasonal theme application.
+6. Define the Adventure information model and main UX/navigation model.
+7. Investigate map/offline architecture.
 
 ## Implementation gate
 **OPEN — AGREE**
