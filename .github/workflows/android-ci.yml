@@ -135,6 +135,32 @@ jobs:
       - name: Unit tests, lint and debug build
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace --no-daemon
 
+      - name: Verify embedded offline map packaging
+        if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
+          test -n "$APK_PATH"
+          APK_PATH="$APK_PATH" python3 - <<'PY'
+          import os
+          import zipfile
+
+          apk = os.environ["APK_PATH"]
+          expected = {
+              "assets/map_spike/eryri-basemap.pmtiles",
+              "assets/map_spike/eryri-terrain.pmtiles",
+          }
+          with zipfile.ZipFile(apk) as archive:
+              for name in expected:
+                  info = archive.getinfo(name)
+                  if info.compress_type != zipfile.ZIP_STORED:
+                      raise SystemExit(
+                          f"{name} is deflated in the APK; AssetManager.openFd() requires a stored asset"
+                      )
+                  if info.file_size <= 0:
+                      raise SystemExit(f"{name} is empty")
+                  print(f"{name}: stored, {info.file_size} bytes")
+          PY
+
       - name: Verify privacy-baseline APK permissions
         run: |
           APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
