@@ -1,4 +1,4 @@
-# Altrove Decisions
+# TrailCharter Decisions
 
 ## FINAL
 ### Seasonal icon system
@@ -12,10 +12,11 @@
 - Winter: approved current palette.
 
 ## AGREE
-- Altrove and Adventure are one continuous project.
+- **TrailCharter is the current agreed product name.** It remains AGREE rather than FINAL until deliberately locked for public/release identity.
+- TrailCharter continues the same project history previously discussed under Altrove and Adventure.
 - Android-first, privacy-first, offline-first where practical, open-source intended.
 - OpenStreetMap foundation.
-- Organic Maps may be reused/integrated but Altrove must retain its own identity.
+- Organic Maps may be reused/integrated but TrailCharter must retain its own identity.
 - No core account, ads, default telemetry or silent uploads.
 - Location stays on-device unless explicitly shared.
 - Transparency by Design.
@@ -25,9 +26,9 @@
 - Foundation implementation must not prematurely lock unresolved EXPLORE decisions into the product or architecture.
 - Early implementation should prioritise the Android project foundation, privacy/offline principles, local-first structure, branding/theming foundations, CI/build reliability and replaceable architectural seams before complex mapping/routing features.
 
-## SUPERSEDED
-- Previous AGREE direction: "No implementation until vision and architecture are sufficiently understood."
-- Superseded on 2026-08-27 by the decision to allow controlled foundation implementation while design and architecture continue.
+## SUPERSEDED / REJECTED
+- Previous AGREE direction: "No implementation until vision and architecture are sufficiently understood." Superseded on 2026-08-27 by the controlled-foundation implementation decision.
+- **Altrove as the product name is rejected/superseded** after clearance identified a directly adjacent active travel-planning app using the name. The repository remains `Masamunr/altrove` for continuity until a later deliberate repository rename.
 
 ## EXPLORE
 - Adventure IA
