@@ -12,23 +12,26 @@ internal data class InstalledOfflineMapPackage(
     val basemap: File,
     val terrain: File,
     val contours: File,
+    val hikingRoutes: File,
     val glyphDirectory: File,
 )
 
-private const val PACKAGE_SCHEMA_VERSION = 1
-private const val PACKAGE_ID = "uk-wales-eryri-pass3-spike"
+private const val PACKAGE_SCHEMA_VERSION = 2
+private const val PACKAGE_ID = "uk-wales-eryri-east-pass4-spike"
 private const val MANIFEST_PATH = "manifest.json"
 private const val BASEMAP_PATH = "eryri-basemap.pmtiles"
 private const val TERRAIN_PATH = "eryri-terrain.pmtiles"
 private const val CONTOURS_PATH = "eryri-contours.pmtiles"
+private const val HIKING_ROUTES_PATH = "eryri-hiking-routes.geojson"
 private const val GLYPH_PATH = "glyphs/TrailCharterSans/0-255.pbf"
 private const val LEGACY_EMBEDDED_PACKAGE_DIRECTORY = "map_spike_pass3"
 
-private const val MAX_ARCHIVE_BYTES = 320L * 1024L * 1024L
+private const val MAX_ARCHIVE_BYTES = 340L * 1024L * 1024L
 private const val MAX_MANIFEST_BYTES = 1024L * 1024L
-private const val MAX_BASEMAP_BYTES = 32L * 1024L * 1024L
-private const val MAX_TERRAIN_BYTES = 180L * 1024L * 1024L
-private const val MAX_CONTOURS_BYTES = 120L * 1024L * 1024L
+private const val MAX_BASEMAP_BYTES = 48L * 1024L * 1024L
+private const val MAX_TERRAIN_BYTES = 190L * 1024L * 1024L
+private const val MAX_CONTOURS_BYTES = 130L * 1024L * 1024L
+private const val MAX_HIKING_ROUTES_BYTES = 8L * 1024L * 1024L
 private const val MAX_GLYPH_BYTES = 2L * 1024L * 1024L
 
 private data class ExpectedPayload(
@@ -47,6 +50,7 @@ private val expectedPayloads = listOf(
     ExpectedPayload("basemap", BASEMAP_PATH, MAX_BASEMAP_BYTES),
     ExpectedPayload("terrain", TERRAIN_PATH, MAX_TERRAIN_BYTES),
     ExpectedPayload("contours", CONTOURS_PATH, MAX_CONTOURS_BYTES),
+    ExpectedPayload("hikingRoutes", HIKING_ROUTES_PATH, MAX_HIKING_ROUTES_BYTES),
     ExpectedPayload("glyphs", GLYPH_PATH, MAX_GLYPH_BYTES),
 )
 
@@ -71,6 +75,7 @@ internal fun loadInstalledEryriMapPackage(context: Context): InstalledOfflineMap
                 "Installed package payload size changed: ${payload.expected.path}"
             }
         }
+        validateHikingRoutes(directory.resolve(HIKING_ROUTES_PATH))
         installedFiles(directory)
     }.getOrNull()
 }
@@ -147,6 +152,7 @@ internal fun importEryriMapPackage(context: Context, source: Uri): InstalledOffl
                 check(actualSha == payload.sha256) { "SHA-256 mismatch: ${payload.expected.path}" }
             }
 
+            validateHikingRoutes(staging.resolve(HIKING_ROUTES_PATH))
             staging.resolve(MANIFEST_PATH).writeText(
                 manifest.toString(2) + "\n",
                 Charsets.UTF_8,
@@ -214,6 +220,10 @@ private fun validateManifest(manifest: JSONObject): List<ValidatedPayload> {
         "Package declares a runtime network requirement"
     }
 
+    val bounds = manifest.getJSONArray("bounds")
+    check(bounds.length() == 4) { "Package bounds are malformed" }
+    check(bounds.getDouble(2) >= -3.88) { "Package does not include the agreed eastward expansion" }
+
     val layers = manifest.getJSONObject("layers")
     return expectedPayloads.map { expected ->
         val layer = layers.getJSONObject(expected.layerKey)
@@ -227,6 +237,24 @@ private fun validateManifest(manifest: JSONObject): List<ValidatedPayload> {
         check(hash.matches(Regex("[0-9a-f]{64}"))) { "Invalid SHA-256 for ${expected.layerKey}" }
         ValidatedPayload(expected, bytes, hash)
     }
+}
+
+private fun validateHikingRoutes(file: File) {
+    check(file.isFile && file.length() in 1..MAX_HIKING_ROUTES_BYTES) {
+        "Hiking-route relation overlay is missing or unsafe"
+    }
+    val collection = JSONObject(file.readText(Charsets.UTF_8))
+    check(collection.getString("type") == "FeatureCollection") { "Hiking-route payload is not GeoJSON" }
+    val features = collection.getJSONArray("features")
+    check(features.length() > 0) { "Hiking-route payload contains no features" }
+    var watkinFound = false
+    for (index in 0 until features.length()) {
+        val feature = features.getJSONObject(index)
+        val properties = feature.getJSONObject("properties")
+        val name = properties.optString("name")
+        if (name.contains("watkin", ignoreCase = true)) watkinFound = true
+    }
+    check(watkinFound) { "Hiking-route payload does not contain the Watkin Path acceptance case" }
 }
 
 private fun validateArchivePath(path: String) {
@@ -247,6 +275,7 @@ private fun loadPackageFromDirectory(directory: File): InstalledOfflineMapPackag
                 "Package payload is incomplete: ${payload.expected.path}"
             }
         }
+        validateHikingRoutes(directory.resolve(HIKING_ROUTES_PATH))
         installedFiles(directory)
     }.getOrNull()
 }
@@ -255,9 +284,6 @@ private fun installedFiles(directory: File) = InstalledOfflineMapPackage(
     basemap = directory.resolve(BASEMAP_PATH),
     terrain = directory.resolve(TERRAIN_PATH),
     contours = directory.resolve(CONTOURS_PATH),
+    hikingRoutes = directory.resolve(HIKING_ROUTES_PATH),
     glyphDirectory = directory.resolve("glyphs"),
 )
-
-private fun packageRoot(context: Context): File = context.filesDir.resolve("offline_maps")
-
-private fun installedPackageDirectory(context: Context): File = packageRoot(context).resolve(PACKAGE_ID)
