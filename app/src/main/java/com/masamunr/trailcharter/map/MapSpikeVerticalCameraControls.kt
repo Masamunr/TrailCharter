@@ -85,8 +85,8 @@ private fun VerticalMapSlider(
             .height(238.dp)
             .pointerInput(valueRange.start, valueRange.endInclusive) {
                 fun updateFromY(y: Float) {
-                    val top = 22.dp.toPx()
-                    val bottom = size.height - 22.dp.toPx()
+                    val top = 19.dp.toPx()
+                    val bottom = size.height - 19.dp.toPx()
                     val usable = (bottom - top).coerceAtLeast(1f)
                     val touchFraction = ((bottom - y) / usable).coerceIn(0f, 1f)
                     onValueChange(valueRange.start + touchFraction * span)
@@ -103,7 +103,7 @@ private fun VerticalMapSlider(
             },
     ) {
         val centerX = size.width / 2f
-        val thumbRadius = 18.dp.toPx()
+        val thumbRadius = 15.dp.toPx()
         val top = thumbRadius + 4.dp.toPx()
         val bottom = size.height - thumbRadius - 4.dp.toPx()
         val usableHeight = bottom - top
