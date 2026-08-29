@@ -13,6 +13,7 @@ internal const val PASS4_ORDINARY_PATH_COLOR = "#8B79B5"
 internal const val PASS4_ESTABLISHED_ROUTE_COLOR = "#6A3FD2"
 internal const val PASS4_ORDINARY_PATH_LABEL_COLOR = "#6C608B"
 internal const val PASS4_ESTABLISHED_ROUTE_LABEL_COLOR = "#5730A5"
+internal const val PASS4_TRAILCHARTER_ROUTE_COLOR = "#E53935"
 internal const val PASS4_LABEL_HALO_COLOR = "#F3EFE6"
 internal const val PASS4_ESTABLISHED_ROUTE_LAYER_ID = "hiking-route-relation-lines"
 
