@@ -295,7 +295,7 @@ private fun renderRoute(map: MapLibreMap, points: List<GeoPoint>, opacity: Float
     if (existingLayer == null) {
         style.addLayer(
             LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID).withProperties(
-                lineColor("#D14A3A"),
+                lineColor(PASS4_TRAILCHARTER_ROUTE_COLOR),
                 lineWidth(5.0f),
                 lineOpacity(opacity),
             ),
