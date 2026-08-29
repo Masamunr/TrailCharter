@@ -38,8 +38,6 @@ First implementation:
 - render names along the path with restrained spacing and collision handling;
 - do not infer, manufacture or hard-code names where the map source does not contain a reliable name.
 
-Examples expected to benefit where source data carries the names include well-known Eryri routes such as **Pyg Track** and **Watkin Path**.
-
 ## AGREE: walking-route label readability
 
 Physical testing of Run #151 confirms the named-track labels are useful but currently too small and too dependent on very close zoom.
@@ -55,17 +53,56 @@ Refine the walking-route label style so route names are readable during ordinary
 
 The acceptance target is that a walker can identify a named route at a normal planning zoom without needing to zoom all the way to z18.
 
-## EXPLORE: hiking-route relation labels
+## Run #151 physical evidence: Watkin Path label gap
 
-A named OSM hiking route may span several constituent ways and may be represented more reliably by a route relation than by way-level `name` tags. If physical testing shows important named routes missing or fragmented, investigate extracting named hiking-route relations into the desktop-built regional map package.
+Run #151 physical testing found that **Watkin Path was not labelled**, despite the general named-way label layer working elsewhere.
 
-Do not add a separate relation payload merely for theoretical completeness. First test whether the existing named-way labels provide adequate walking-map coverage.
+This is concrete evidence that way-level `name` tags alone do not provide adequate coverage for TrailCharter's walking-map use case. Well-known walking routes may be represented by OSM hiking/walking route relations even where their individual constituent ways do not carry the route name.
+
+Do not work around this by hard-coding famous route names into the Android renderer.
+
+## AGREE: hiking-route relation labels
+
+For the next cartography spike, add reliable named hiking/walking route-relation support to the desktop-built regional map package where source data permits it.
+
+Requirements:
+
+- prefer authoritative OSM-derived `route=hiking` / walking-route relation names and references;
+- keep extraction/build work on the desktop/package-factory side so Android runtime remains offline and lightweight;
+- render relation-derived route names along the relevant route geometry at useful walking zooms;
+- deduplicate or suppress relation labels where the same route name is already satisfactorily supplied by a named way;
+- never infer or manufacture a route name when source data is ambiguous;
+- use **Watkin Path** as an explicit physical acceptance case for the next build.
+
+The implementation route remains a technical detail: first inspect whether the existing Protomaps source exposes sufficient relation-derived data; if not, add a small dedicated relation-derived vector layer during desktop package generation.
+
+## AGREE: incremental Eryri geography expansion
+
+Grow the test geography gradually rather than jumping from the current Yr Wyddfa-centred package to a whole-country package.
+
+Current spike bounds are approximately:
+
+`-4.22, 52.97, -3.95, 53.18`
+
+For the next package pass, extend the eastern edge to approximately **-3.88**, keeping the other bounds broadly stable. The intended additional test area is **Capel Curig / Moel Siabod** and its surrounding walking network.
+
+The purpose is not merely to add more map for its own sake. Each incremental expansion must record how package growth affects:
+
+- total map-package size and each major payload;
+- desktop package build time where practical;
+- Android import/validation behaviour;
+- map load and interaction responsiveness on-device;
+- close-zoom rendering behaviour;
+- routing-package coverage and route calculation behaviour where the routing data needs to grow as well.
+
+Do not reduce agreed cartographic quality merely to hold the package to an arbitrary size. Use measured size/performance evidence to determine sensible future regional-package boundaries.
 
 ## Next physical acceptance focus
 
-1. confirm z18 zoom is genuinely useful and the existing vertical Zoom control reaches it;
-2. confirm hillshade disappears cleanly above its useful native range without leaving an objectionable visual transition;
-3. inspect the small BRouter/path offsets at z17-z18 and determine whether the route remains on the established routable corridor;
-4. verify useful path names appear where source data contains them, without excessive label clutter;
-5. confirm larger route labels are readable at ordinary planning zooms without excessive collision or repetition;
-6. retain adjustable route opacity so route geometry can still be compared directly with the path beneath it.
+1. confirm larger walking-route labels are readable at ordinary planning zooms without excessive collision or repetition;
+2. confirm **Watkin Path** is reliably labelled through route-relation support rather than hard-coding;
+3. confirm the expanded Capel Curig / Moel Siabod area imports and renders at the same expected cartographic quality;
+4. record the size increase versus the previous Eryri package and note any material import/rendering impact;
+5. run at least one walking-route test in the newly added eastern area so BRouter is assessed outside the original Yr Wyddfa test corridor;
+6. retain z18 inspection zoom and adjustable route opacity for route-fidelity review;
+7. continue to enforce the routing-safety rule that guided/magnetic routes must remain on known routable network geometry.
