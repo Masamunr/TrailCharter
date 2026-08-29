@@ -44,9 +44,10 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 
 private const val MIN_CAMERA_ZOOM = 9f
-// Pass 3 contains genuine Mapterhorn DEM through z16 only. Staying at the native DEM ceiling also
-// avoids MapLibre Native's known hillshade tile-edge seam when raster-dem data is overzoomed.
-private const val MAX_CAMERA_ZOOM = 16f
+// Native data remains z15 vectors / z16 DEM / z14 contours. z18 is deliberately an inspection
+// zoom so walkers can compare the calculated route with mapped paths more closely; it does not
+// imply extra native terrain resolution.
+private const val MAX_CAMERA_ZOOM = 18f
 private const val MAX_CAMERA_TILT = 60f
 
 /**
@@ -252,7 +253,7 @@ private fun OfflineEryriPass3Map(packages: InstalledOfflineMapPackage) {
                 Text("Eryri offline topo", style = MaterialTheme.typography.titleSmall)
                 Text(status, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    "z15 vectors • z16 relief • OS 10 m contours",
+                    "z15 vectors • z16 relief • OS 10 m contours • z18 inspection",
                     style = MaterialTheme.typography.labelSmall,
                 )
                 Text(
@@ -386,6 +387,7 @@ private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String
               "id": "hillshade",
               "type": "hillshade",
               "source": "terrain",
+              "maxzoom": 16.25,
               "paint": {
                 "hillshade-exaggeration": 0.48,
                 "hillshade-shadow-color": "#5E574B",
@@ -570,6 +572,35 @@ private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String
                 "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.7, 14, 1.6, 16, 2.2],
                 "line-dasharray": [2, 1.5],
                 "line-opacity": 0.98
+              }
+            },
+            {
+              "id": "named-walking-path-labels",
+              "type": "symbol",
+              "source": "basemap",
+              "source-layer": "roads",
+              "minzoom": 14,
+              "filter": [
+                "all",
+                ["match", ["get", "kind_detail"], ["track", "path", "bridleway", "steps"], true, false],
+                ["has", "name"]
+              ],
+              "layout": {
+                "symbol-placement": "line",
+                "symbol-spacing": 450,
+                "text-field": ["get", "name"],
+                "text-font": ["TrailCharterSans"],
+                "text-size": ["interpolate", ["linear"], ["zoom"], 14, 10.5, 18, 13.0],
+                "text-max-angle": 30,
+                "text-padding": 12,
+                "text-keep-upright": true,
+                "text-allow-overlap": false
+              },
+              "paint": {
+                "text-color": "#5F4635",
+                "text-halo-color": "#F1EDE4",
+                "text-halo-width": 1.5,
+                "text-halo-blur": 0.2
               }
             },
             {
