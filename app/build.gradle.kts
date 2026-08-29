@@ -1,40 +1,23 @@
-import java.security.MessageDigest
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
-val launcherArtworkSource = layout.projectDirectory.file("branding/ic_launcher_shield.webp")
-val generatedLauncherResDir = layout.buildDirectory.dir("generated/trailcharterLauncher/res")
-val expectedLauncherArtworkSha256 = "881ca2eca089dcd7ee89f0ed1dd425cd6cd8fddb4480526a6571928c450f3fb8"
-
-val ciSigningStorePath = providers.environmentVariable("TRAILCHARTER_CI_KEYSTORE_PATH").orNull
-val ciSigningStorePassword = providers.environmentVariable("TRAILCHARTER_CI_KEYSTORE_PASSWORD").orNull
-val ciSigningKeyAlias = providers.environmentVariable("TRAILCHARTER_CI_KEY_ALIAS").orNull
-val ciSigningKeyPassword = providers.environmentVariable("TRAILCHARTER_CI_KEY_PASSWORD").orNull
-val ciSigningConfigured = listOf(ciSigningStorePath, ciSigningStorePassword, ciSigningKeyAlias, ciSigningKeyPassword).all { !it.isNullOrBlank() }
+import java.io.File
+import java.security.MessageDigest
 
 val prepareLauncherIcon by tasks.registering {
-    inputs.file(launcherArtworkSource)
-    outputs.dir(generatedLauncherResDir)
-
+    val source = rootProject.file("docs/branding/trailcharter-logo-primary.png")
+    val destination = layout.projectDirectory.file("src/main/res/drawable/trailcharter_logo_primary.png")
+    inputs.file(source)
+    outputs.file(destination)
     doLast {
-        val artwork = launcherArtworkSource.asFile.readBytes()
-        check(artwork.size >= 12) { "Launcher artwork is too small to be a valid WebP file" }
-        check(String(artwork, 0, 4, Charsets.US_ASCII) == "RIFF") { "Launcher artwork is not a RIFF file" }
-        check(String(artwork, 8, 4, Charsets.US_ASCII) == "WEBP") { "Launcher artwork is not a WebP file" }
-        val declaredRiffSize = (artwork[4].toInt() and 0xff) or ((artwork[5].toInt() and 0xff) shl 8) or ((artwork[6].toInt() and 0xff) shl 16) or ((artwork[7].toInt() and 0xff) shl 24)
-        check(declaredRiffSize + 8 == artwork.size) { "Launcher artwork is truncated or has unexpected trailing bytes" }
-        val actualSha256 = MessageDigest.getInstance("SHA-256").digest(artwork).joinToString("") { "%02x".format(it.toInt() and 0xff) }
-        check(actualSha256 == expectedLauncherArtworkSha256) { "Launcher artwork bytes do not match the approved shield source" }
-        val mipmapDir = generatedLauncherResDir.get().dir("mipmap-xxxhdpi").asFile
-        mipmapDir.mkdirs()
-        mipmapDir.resolve("ic_launcher.webp").writeBytes(artwork)
-        mipmapDir.resolve("ic_launcher_round.webp").writeBytes(artwork)
-        mipmapDir.resolve("ic_launcher_artwork.webp").writeBytes(artwork)
+        check(source.isFile) { "Missing launcher icon source: $source" }
+        destination.asFile.parentFile.mkdirs()
+        source.copyTo(destination.asFile, overwrite = true)
     }
 }
 
@@ -48,32 +31,41 @@ android {
         targetSdk = 36
         versionCode = 11
         versionName = "0.2.3-alpha1"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    sourceSets { getByName("main").res.srcDir(generatedLauncherResDir) }
-
     signingConfigs {
-        if (ciSigningConfigured) {
-            create("continuityDebug") {
-                storeFile = file(requireNotNull(ciSigningStorePath))
-                storePassword = requireNotNull(ciSigningStorePassword)
-                keyAlias = requireNotNull(ciSigningKeyAlias)
-                keyPassword = requireNotNull(ciSigningKeyPassword)
+        create("continuityDebug") {
+            val keystorePath = providers.environmentVariable("TRAILCHARTER_CI_KEYSTORE_PATH").orNull
+            val keystorePassword = providers.environmentVariable("TRAILCHARTER_CI_KEYSTORE_PASSWORD").orNull
+            val keyAliasValue = providers.environmentVariable("TRAILCHARTER_CI_KEY_ALIAS").orNull
+            val keyPasswordValue = providers.environmentVariable("TRAILCHARTER_CI_KEY_PASSWORD").orNull
+            if (!keystorePath.isNullOrBlank() && !keystorePassword.isNullOrBlank() && !keyAliasValue.isNullOrBlank() && !keyPasswordValue.isNullOrBlank()) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
+                storeType = "PKCS12"
             }
         }
     }
 
     buildTypes {
         debug {
-            // This draft branch is a technical spike. Keep it installable beside the real
-            // TrailCharter alpha so physical renderer/routing testing cannot touch Adventure data.
             applicationIdSuffix = ".mapspike"
             versionNameSuffix = "-mapspike"
-            if (ciSigningConfigured) signingConfig = signingConfigs.getByName("continuityDebug")
+            val continuityPath = providers.environmentVariable("TRAILCHARTER_CI_KEYSTORE_PATH").orNull
+            if (!continuityPath.isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("continuityDebug")
+            }
         }
         release {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 
@@ -86,11 +78,11 @@ android {
 }
 
 // Keep the normal TrailCharter application identity/version at versionCode 11. Only the isolated
-// debug .mapspike APK advances for physical spike installs; Run 160 physical fixes are version 22.
+// debug .mapspike APK advances for physical spike installs; path visual hierarchy test is version 23.
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.outputs.forEach { output ->
-            output.versionCode.set(22)
+            output.versionCode.set(23)
         }
     }
 }
@@ -103,31 +95,38 @@ ksp {
 
 kotlin { jvmToolchain(17) }
 
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.kotlinx.coroutines.android)
+    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.maplibre.compose) {
-        exclude(group = "org.maplibre.gl", module = "android-sdk")
-    }
-    implementation(libs.maplibre.android.opengl)
-
-    // Technical routing spike only. BRouter's public core API exposes classes from modules that it
-    // declares internally as Gradle implementation dependencies, so make all five source modules
-    // visible to TrailCharter while keeping the whole set pinned to the same immutable v1.7.10 tag.
-    implementation("org.btools:brouter-core:v1.7.10")
-    implementation("org.btools:brouter-mapaccess:v1.7.10")
-    implementation("org.btools:brouter-util:v1.7.10")
-    implementation("org.btools:brouter-expressions:v1.7.10")
-    implementation("org.btools:brouter-codec:v1.7.10")
-
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.biometric)
+    implementation(libs.maplibre.android)
+    implementation(libs.protomaps.pmtiles)
+    implementation(project(":brouter-core"))
+    implementation(project(":brouter-expressions"))
+    implementation(project(":brouter-mapaccess"))
+    implementation(project(":brouter-util"))
     ksp(libs.androidx.room.compiler)
-    debugImplementation(libs.androidx.compose.ui.tooling)
+
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
