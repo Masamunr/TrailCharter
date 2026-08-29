@@ -20,13 +20,15 @@ class MapRoutingSpikeContractsTest {
     }
 
     @Test
-    fun agreedPathHierarchyUsesOneVioletFamilyWithoutRemovingOrdinaryPaths() {
+    fun agreedPathHierarchyUsesOneVioletFamilyAndBrightTrailCharterRoute() {
         assertEquals("#8B79B5", PASS4_ORDINARY_PATH_COLOR)
         assertEquals("#6A3FD2", PASS4_ESTABLISHED_ROUTE_COLOR)
         assertEquals("#6C608B", PASS4_ORDINARY_PATH_LABEL_COLOR)
         assertEquals("#5730A5", PASS4_ESTABLISHED_ROUTE_LABEL_COLOR)
+        assertEquals("#E53935", PASS4_TRAILCHARTER_ROUTE_COLOR)
         assertEquals("hiking-route-relation-lines", PASS4_ESTABLISHED_ROUTE_LAYER_ID)
         assertTrue(PASS4_ORDINARY_PATH_COLOR != PASS4_ESTABLISHED_ROUTE_COLOR)
+        assertTrue(PASS4_TRAILCHARTER_ROUTE_COLOR != PASS4_ESTABLISHED_ROUTE_COLOR)
     }
 
     @Test
