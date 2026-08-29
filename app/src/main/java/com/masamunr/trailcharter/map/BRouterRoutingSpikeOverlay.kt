@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,9 +40,13 @@ import org.maplibre.android.style.layers.PropertyFactory.lineColor
 import org.maplibre.android.style.layers.PropertyFactory.lineOpacity
 import org.maplibre.android.style.layers.PropertyFactory.lineWidth
 import org.maplibre.android.style.sources.GeoJsonSource
+import kotlin.math.roundToInt
 
 private const val ROUTE_SOURCE_ID = "trailcharter-brouter-test-route"
 private const val ROUTE_LAYER_ID = "trailcharter-brouter-test-route-line"
+private const val DEFAULT_ROUTE_OPACITY = 0.55f
+private const val MIN_ROUTE_OPACITY = 0.10f
+private const val MAX_ROUTE_OPACITY = 1.00f
 
 private data class RoutingBenchmark(
     val distanceMetres: Double,
@@ -72,6 +77,7 @@ internal fun BRouterRoutingSpikeOverlay(
     }
     var importing by remember { mutableStateOf(false) }
     var calculating by remember { mutableStateOf(false) }
+    var routeOpacity by remember { mutableStateOf(DEFAULT_ROUTE_OPACITY) }
     var message by remember {
         mutableStateOf(
             if (routingPackage == null) {
@@ -137,6 +143,18 @@ internal fun BRouterRoutingSpikeOverlay(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Text(
+                    "Route opacity ${(routeOpacity * 100f).roundToInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                Slider(
+                    value = routeOpacity,
+                    onValueChange = { opacity ->
+                        routeOpacity = opacity
+                        updateRouteOpacity(map, opacity)
+                    },
+                    valueRange = MIN_ROUTE_OPACITY..MAX_ROUTE_OPACITY,
+                )
             }
 
             val installed = routingPackage
@@ -164,7 +182,7 @@ internal fun BRouterRoutingSpikeOverlay(
                             runCatching {
                                 calculateBenchmark(installed)
                             }.onSuccess { (route, metrics) ->
-                                renderRoute(map, route.geometry.points)
+                                renderRoute(map, route.geometry.points, routeOpacity)
                                 benchmark = metrics
                                 calculating = false
                                 message = "Magnetic three-point WALK route calculated"
@@ -212,7 +230,7 @@ private suspend fun calculateBenchmark(
     )
 }
 
-private fun renderRoute(map: MapLibreMap, points: List<GeoPoint>) {
+private fun renderRoute(map: MapLibreMap, points: List<GeoPoint>, opacity: Float) {
     val style = map.style ?: error("Map style is not ready")
     val coordinates = points.joinToString(separator = ",") { point ->
         "[${point.longitude},${point.latitude}]"
@@ -226,15 +244,22 @@ private fun renderRoute(map: MapLibreMap, points: List<GeoPoint>) {
         style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, geoJson))
     }
 
-    if (style.getLayer(ROUTE_LAYER_ID) == null) {
+    val existingLayer = style.getLayer(ROUTE_LAYER_ID)
+    if (existingLayer == null) {
         style.addLayer(
             LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID).withProperties(
                 lineColor("#D14A3A"),
                 lineWidth(5.0f),
-                lineOpacity(0.94f),
+                lineOpacity(opacity),
             ),
         )
+    } else {
+        existingLayer.setProperties(lineOpacity(opacity))
     }
+}
+
+private fun updateRouteOpacity(map: MapLibreMap, opacity: Float) {
+    map.style?.getLayer(ROUTE_LAYER_ID)?.setProperties(lineOpacity(opacity))
 }
 
 private fun formatBytes(bytes: Long): String {
