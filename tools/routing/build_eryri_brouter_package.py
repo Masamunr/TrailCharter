@@ -61,6 +61,26 @@ def payload(path: Path, archive_path: str, source: str, payload_type: str) -> di
     }
 
 
+def enable_misplaced_via_correction(profile: Path) -> None:
+    """Apply the one TrailCharter spike override to BRouter's pinned hiking profile."""
+    profile_text = profile.read_text(encoding="utf-8")
+    if re.search(r"(?m)^\s*assign\s+correctMisplacedViaPoints\b", profile_text):
+        raise RuntimeError(
+            "Pinned hiking profile now defines correctMisplacedViaPoints itself; review the upstream change"
+        )
+
+    marker = "---context:way"
+    if marker not in profile_text:
+        raise RuntimeError("Pinned BRouter profile no longer contains the expected way-context marker")
+
+    override = (
+        "# TrailCharter EXPLORE spike override: remove short detours caused by shaping via points.\n"
+        "assign correctMisplacedViaPoints = true\n"
+        "assign correctMisplacedViaPointsDistance = 400\n\n"
+    )
+    profile.write_text(profile_text.replace(marker, override + marker, 1), encoding="utf-8")
+
+
 def build(output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="trailcharter-brouter-") as tmp_name:
@@ -83,6 +103,14 @@ def build(output: Path) -> None:
         if not re.search(r"(?m)^\s*assign\s+validForFoot\s*(?:=\s*)?1(?:\s*(?:#.*)?)?$", profile_text):
             raise RuntimeError("Pinned BRouter profile no longer declares validForFoot = 1")
 
+        enable_misplaced_via_correction(profile)
+        corrected_profile_text = profile.read_text(encoding="utf-8")
+        if not re.search(
+            r"(?m)^\s*assign\s+correctMisplacedViaPoints\s*=\s*true\s*$",
+            corrected_profile_text,
+        ):
+            raise RuntimeError("TrailCharter misplaced-via correction was not applied")
+
         manifest = {
             "schemaVersion": 1,
             "packageId": PACKAGE_ID,
@@ -91,6 +119,11 @@ def build(output: Path) -> None:
             "routingEngine": {"name": "BRouter", "version": BRT_VERSION},
             "travelMode": "WALK",
             "runtimeNetworkRequired": False,
+            "profileOverrides": {
+                "correctMisplacedViaPoints": True,
+                "correctMisplacedViaPointsDistance": 400,
+                "status": "EXPLORE",
+            },
             "dataSnapshot": {
                 "source": "BRouter published segments4 weekly dataset",
                 "segment": SEGMENT_NAME,
