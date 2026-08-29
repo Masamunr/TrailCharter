@@ -132,6 +132,21 @@ The first Moel Siabod WALK result also appeared not to follow an established rou
 
 VersionCode 22 preserves the existing privacy boundary: no `INTERNET`, location or broad storage permissions, offline app-private package use, unchanged BRouter package/profile data, and a draft PR.
 
+## Run #163 CI evidence: physical-finding corrections
+
+Run #163 is fully green for the versionCode 22 application code at commit `262d51ab1080f2d9debe551e32f0306c27fb65d5`.
+
+CI confirms:
+
+- the Eryri East Pass 4 package rebuilt and passed schema, payload, hash, bounds and Watkin-relation verification;
+- the unchanged BRouter WALK package rebuilt and passed engine/profile/payload verification;
+- all 12 unit tests, lint and APK assembly pass, including contracts for the Protomaps `kind=path` filters and both physical routing scenarios;
+- the APK contains no embedded map or routing package and remains below the package-split size ceiling;
+- versionCode 22, the no-network/location/broad-storage-permission boundary and continuity signing all pass;
+- APK, map package, BRouter package and Room-schema artifacts uploaded successfully.
+
+The continuity-signed physical APK is **87,346,095 bytes** with SHA-256 `852a092d01b4afe4a12146f97e22adbead60842c66d8447333ffe382fee484eb`. The accepted Run #160 Eryri East map and BRouter packages may be retained because the correction changes APK rendering/host wiring only.
+
 ## Next physical acceptance focus
 
 1. install versionCode 22 over Run #160 without replacing either offline package;
@@ -140,3 +155,4 @@ VersionCode 22 preserves the existing privacy boundary: no `INTERNET`, location 
 4. confirm both Yr Wyddfa and Moel Siabod WALK buttons appear immediately after a first-time map import, without restarting the app;
 5. rerun **Plas y Brenin → Moel Siabod**, reduce route opacity to approximately 25–35%, and inspect the questionable section at z17-z18;
 6. classify any remaining route/path divergence against the now-complete rendered network while retaining the rule that guided/magnetic routes must not silently invent an off-network shortcut.
+
