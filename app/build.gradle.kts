@@ -86,11 +86,11 @@ android {
 }
 
 // Keep the normal TrailCharter application identity/version at versionCode 11. Only the isolated
-// debug .mapspike APK advances for physical spike installs; z18/path-label inspection is 20.
+// debug .mapspike APK advances for physical spike installs; Eryri East/relation-label validation is 21.
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.outputs.forEach { output ->
-            output.versionCode.set(20)
+            output.versionCode.set(21)
         }
     }
 }
