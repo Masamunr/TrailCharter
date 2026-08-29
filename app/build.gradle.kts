@@ -118,9 +118,14 @@ dependencies {
     }
     implementation(libs.maplibre.android.opengl)
 
-    // Technical routing spike only. Gradle resolves this module from the public BRouter repository
-    // configured in settings.gradle.kts and pins it to the immutable v1.7.10 source tag.
+    // Technical routing spike only. BRouter's public core API exposes classes from modules that it
+    // declares internally as Gradle implementation dependencies, so make all five source modules
+    // visible to TrailCharter while keeping the whole set pinned to the same immutable v1.7.10 tag.
     implementation("org.btools:brouter-core:v1.7.10")
+    implementation("org.btools:brouter-mapaccess:v1.7.10")
+    implementation("org.btools:brouter-util:v1.7.10")
+    implementation("org.btools:brouter-expressions:v1.7.10")
+    implementation("org.btools:brouter-codec:v1.7.10")
 
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
