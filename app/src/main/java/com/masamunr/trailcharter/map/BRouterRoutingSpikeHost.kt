@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -21,6 +22,11 @@ import org.maplibre.android.maps.MapLibreMap
 @Composable
 internal fun BRouterRoutingSpikeHost(map: MapLibreMap?) {
     val resolvedMap = map ?: return
+
+    LaunchedEffect(resolvedMap) {
+        applyPass4PathVisualHierarchy(resolvedMap)
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         BRouterRoutingSpikeOverlay(
             map = resolvedMap,
