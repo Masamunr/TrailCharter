@@ -1,6 +1,6 @@
 # Offline map package split spike
 
-Status: **AGREE DIRECTION / EXPLORE FORMAT / SPIKE**
+Status: **AGREE DIRECTION / PHYSICAL PASS / EXPLORE FORMAT / SPIKE**
 
 This note records the transition immediately after the final embedded-heavyweight Cartography Pass 3 comparison. It does not select a FINAL regional package format, a production map-distribution service, or a production routing engine.
 
@@ -8,13 +8,13 @@ This note records the transition immediately after the final embedded-heavyweigh
 
 - Run #111 is the final embedded-heavyweight map-spike build at versionCode 15.
 - Physical testing confirmed the revised vertical slider/toggle arrangement is substantially more intuitive.
-- The slider/toggle cluster is now slightly too low. **AGREE:** move the whole cluster upward by approximately 2 cm in the next combined map/package test build rather than producing a dedicated APK for this cosmetic adjustment.
+- The slider/toggle cluster was slightly too low. **AGREE:** move the whole cluster upward by approximately 2 cm in the next combined map/package test build rather than producing a dedicated APK for this cosmetic adjustment.
 - Do not reopen the accepted vertical orientation, background-free treatment, smaller thumb direction, Tilt/Zoom toggle arrangement, separate top-right compass, z16 terrain ceiling, contours, or ordinary map gestures unless new physical evidence requires it.
-- The faint Run #105 hillshade joins were addressed by stopping raster-DEM overzoom beyond the genuine z16 terrain ceiling. The next combined build must preserve this behaviour and should be checked again physically rather than declaring the seam issue FINAL from CI alone.
+- Stopping raster-DEM overzoom beyond the genuine z16 terrain ceiling reduced the Run #105 hillshade joins and removed the false implication that z17 contained new terrain detail. Run #120 physical evidence later confirmed that faint tile-edge joins still remain at native z16, so overzoom was an aggravating factor rather than the sole cause.
 
 ## AGREE: separate the application from heavyweight regional map data
 
-Cartography Pass 3 was deliberately the last test in which regional basemap, terrain and contours were embedded in the APK. The next architecture slice is to prove that:
+Cartography Pass 3 was deliberately the last test in which regional basemap, terrain and contours were embedded in the APK. The package-split architecture proves that:
 
 1. heavyweight cartographic preparation can happen on a normal desktop PC;
 2. the resulting regional package can be transferred to the phone explicitly;
@@ -83,22 +83,36 @@ Run #120 is the first CI-verified package-split candidate at isolated map-spike 
 - The final APK remains free of INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, coarse/fine location and broad external-storage permissions.
 - The Run #111 slider/toggle feedback is included: the whole cluster is raised by approximately 2 cm relative to Run #111 while preserving the accepted smaller thumb and vertical control design.
 
-**Physical acceptance remains pending.** Run #120 must prove on the Android 16 device that the package imports through the system picker, the accepted Eryri map renders from the imported package, the package survives restart, the slider position is now right, and the z16 hillshade seam correction remains satisfactory.
+## Run #120 physical evidence
+
+Run #120 has now passed the basic physical package-split gate on the Android 16 test device.
+
+- Standalone Eryri package selection/import through the system document picker: **PASS**.
+- Rendering from imported local basemap, terrain, contours, labels and path data: **PASS**.
+- Revised slider/toggle position after the approximately 2 cm upward adjustment: **PASS**.
+- Existing gestures and compass behaviour: **PASS**.
+- Imported package remains the app's local map source rather than requiring data to be embedded back into the APK: **PASS**.
+- Faint straight hillshade tile-edge joins remain visible at close zoom even though camera zoom is capped at the genuine z16 DEM ceiling. Contours cross the joins continuously. The remaining artefact is therefore recorded as a **MapLibre raster-DEM hillshade tile-edge rendering defect**, not a package-integrity or contour problem.
+
+Detailed physical evidence is recorded in `docs/architecture/MAP_PACKAGE_SPLIT_RUN_120_PHYSICAL.md`.
 
 ## Acceptance evidence for the package split
 
-- APK size falls materially because regional basemap/terrain/contours are no longer embedded. **CI PASS in Run #120.**
-- Eryri package imports through the system picker and renders identically enough to the accepted Pass 3 cartography for physical comparison. **Physical pending.**
-- The 2 cm upward slider/toggle adjustment is included in this combined build. **CI present; physical pending.**
-- Imported package survives process death and normal app restart. **Physical pending.**
-- Invalid/tampered package is rejected without damaging the previously installed valid package. **Implementation/CI review present; destructive physical test deferred until basic import proof passes.**
+- APK size falls materially because regional basemap/terrain/contours are no longer embedded. **PASS.**
+- Eryri package imports through the system picker and renders the accepted Pass 3 cartography from local files. **PHYSICAL PASS.**
+- The 2 cm upward slider/toggle adjustment is included and physically accepted. **PASS.**
+- Imported package survives normal app use/reopen as the installed local package. **PHYSICAL PASS.**
+- Invalid/tampered package rejection is implemented with staged validation; a deliberately destructive physical tamper test remains optional spike hardening rather than a blocker for routing work.
 - Final APK remains free of INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, coarse location and fine location permissions. **CI PASS in Run #120.**
-- App does not make network requests while opening, importing or rendering a local package. **Architecture/permission boundary present; physical runtime confirmation pending.**
-- Package byte sizes and hashes are recorded explicitly. **CI PASS in Run #120.**
-- The spike container/manifest remains EXPLORE until physical import evidence exists.
+- App architecture does not require network requests while opening, importing or rendering a local package. **PASS at the current package boundary.**
+- Package byte sizes and hashes are recorded explicitly. **PASS.**
+- The spike container/manifest remains **EXPLORE**, not FINAL.
+- Native-z16 hillshade seams remain **OPEN / NON-BLOCKING**.
 
 ## Routing follows this boundary
 
-The existing `RoutingEngineBoundary` remains authoritative. Once the package split is physically proven, start the previously recorded BRouter-first offline walking-routing comparison using representative Eryri routes. Routing data must be treated as another local package concern rather than being hidden back inside an ever-growing APK.
+The existing `RoutingEngineBoundary` remains authoritative. The package split now has basic physical acceptance, so the next implementation slice is the previously recorded BRouter-first offline walking-routing comparison using representative Eryri routes.
+
+Routing data must follow the same separation principle proven by Run #120: it is a local package concern and must not be hidden back inside an ever-growing APK.
 
 Valhalla remains the second comparison candidate. Neither becomes production-selected without physical route-quality and integration evidence.
