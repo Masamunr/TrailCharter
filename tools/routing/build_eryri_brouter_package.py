@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import tempfile
 import urllib.request
@@ -77,7 +78,9 @@ def build(output: Path) -> None:
             raise RuntimeError(
                 f"BRouter segment exceeded spike safety ceiling: {segment.stat().st_size} bytes"
             )
-        if b"validForFoot = 1" not in profile.read_bytes():
+
+        profile_text = profile.read_text(encoding="utf-8")
+        if not re.search(r"(?m)^\s*assign\s+validForFoot\s*(?:=\s*)?1(?:\s*(?:#.*)?)?$", profile_text):
             raise RuntimeError("Pinned BRouter profile no longer declares validForFoot = 1")
 
         manifest = {
