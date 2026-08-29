@@ -63,7 +63,7 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Build standalone Eryri offline map package
+      - name: Build standalone Eryri East offline map package
         if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
         run: |
           set -euo pipefail
@@ -73,7 +73,7 @@ jobs:
           PMTILES_URL="https://github.com/protomaps/go-pmtiles/releases/download/v${PMTILES_VERSION}/${PMTILES_ARCHIVE}"
           PMTILES_SHA256="3ed7dbf4ec2e6dfe5e25b6f70d1ffc932729f93c86db353bf514dd71010a312f"
           TOOL_DIR="$RUNNER_TEMP/pmtiles-cli"
-          PACKAGE_PATH="$RUNNER_TEMP/trailcharter-eryri-pass3-spike.zip"
+          PACKAGE_PATH="$RUNNER_TEMP/trailcharter-eryri-east-pass4-spike.zip"
 
           mkdir -p "$TOOL_DIR"
           curl --fail --location --retry 3 --silent --show-error \
@@ -91,7 +91,7 @@ jobs:
           test -s "$PACKAGE_PATH"
           echo "TRAILCHARTER_MAP_PACKAGE_PATH=$PACKAGE_PATH" >> "$GITHUB_ENV"
 
-      - name: Verify standalone offline map package
+      - name: Verify standalone Eryri East offline map package
         if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
         run: |
           set -euo pipefail
@@ -108,6 +108,7 @@ jobs:
               "eryri-basemap.pmtiles",
               "eryri-terrain.pmtiles",
               "eryri-contours.pmtiles",
+              "eryri-hiking-routes.geojson",
               "glyphs/TrailCharterSans/0-255.pbf",
           }
 
@@ -117,14 +118,25 @@ jobs:
                   raise SystemExit(f"Unexpected package members: {sorted(actual_paths ^ expected_paths)}")
 
               manifest = json.loads(archive.read("manifest.json"))
-              if manifest.get("schemaVersion") != 1:
+              if manifest.get("schemaVersion") != 2:
                   raise SystemExit("Unexpected map-package schema")
-              if manifest.get("packageId") != "uk-wales-eryri-pass3-spike":
+              if manifest.get("packageId") != "uk-wales-eryri-east-pass4-spike":
                   raise SystemExit("Unexpected map-package ID")
               if manifest.get("runtimeNetworkRequired") is not False:
                   raise SystemExit("Map package unexpectedly requires runtime networking")
 
-              for layer_name, layer in manifest["layers"].items():
+              bounds = manifest.get("bounds", [])
+              if len(bounds) != 4 or bounds[2] < -3.88:
+                  raise SystemExit(f"Map package does not include agreed eastward expansion: {bounds}")
+
+              layers = manifest.get("layers", {})
+              hiking_layer = layers.get("hikingRoutes", {})
+              if hiking_layer.get("path") != "eryri-hiking-routes.geojson":
+                  raise SystemExit("Hiking-route relation payload is missing from manifest")
+              if hiking_layer.get("kind") != "geojson":
+                  raise SystemExit("Hiking-route relation payload has unexpected kind")
+
+              for layer_name, layer in layers.items():
                   path = layer["path"]
                   payload = archive.read(path)
                   actual_hash = hashlib.sha256(payload).hexdigest()
@@ -134,10 +146,26 @@ jobs:
                       raise SystemExit(f"SHA-256 mismatch for {path}")
                   print(f"{layer_name}: {path}, {len(payload)} bytes, {actual_hash}")
 
+              routes = json.loads(archive.read("eryri-hiking-routes.geojson"))
+              if routes.get("type") != "FeatureCollection":
+                  raise SystemExit("Hiking-route relation payload is not a GeoJSON FeatureCollection")
+              features = routes.get("features", [])
+              if not features:
+                  raise SystemExit("Hiking-route relation payload contains no features")
+              route_names = [str(feature.get("properties", {}).get("name", "")) for feature in features]
+              if not any("watkin" in name.casefold() for name in route_names):
+                  raise SystemExit(f"Watkin Path acceptance relation missing; names include: {route_names[:20]}")
+              declared_count = hiking_layer.get("featureCount")
+              if declared_count != len(features):
+                  raise SystemExit(
+                      f"Hiking-route feature count mismatch: manifest={declared_count}, actual={len(features)}"
+                  )
+              print(f"Hiking-route relation features: {len(features)}; Watkin acceptance case present")
+
           package_bytes = os.path.getsize(package)
           if package_bytes > 260 * 1024 * 1024:
               raise SystemExit(f"Map package exceeded 260 MiB spike ceiling: {package_bytes}")
-          print(f"Standalone map package: {package_bytes} bytes")
+          print(f"Standalone Eryri East map package: {package_bytes} bytes")
           PY
 
       - name: Build standalone Eryri BRouter WALK package
@@ -273,7 +301,7 @@ jobs:
 
           BADGING=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK_PATH")
           printf '%s\n' "$BADGING" | head -n 3
-          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='20'" <<< "$BADGING"
+          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='21'" <<< "$BADGING"
 
           PERMISSIONS=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$APK_PATH")
           printf '%s\n' "$PERMISSIONS"
@@ -331,12 +359,12 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload standalone Eryri map package
+      - name: Upload standalone Eryri East map package
         if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
         uses: actions/upload-artifact@v6
         with:
-          name: trailcharter-eryri-package-run-${{ github.run_number }}
-          path: ${{ runner.temp }}/trailcharter-eryri-pass3-spike.zip
+          name: trailcharter-eryri-east-package-run-${{ github.run_number }}
+          path: ${{ runner.temp }}/trailcharter-eryri-east-pass4-spike.zip
           if-no-files-found: error
           retention-days: 14
 
