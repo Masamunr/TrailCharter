@@ -86,6 +86,21 @@ Measured Run #93 embedded assets and APK:
 
 The final APK passed unit tests, lint, debug assembly, stored/uncompressed embedded-asset verification, map-spike identity/version verification, forbidden-permission verification, continuity-signing verification and artifact upload. CI success is **not** physical acceptance; Run #93 now requires comparison against physically accepted Run #79.
 
+## AGREE: Pass 3 interface refinement
+
+Physical testing confirmed that the continuous camera control behaves as intended. Refine its presentation before closing the embedded comparison:
+
+- move the camera slider to the right side of the map and orient it vertically;
+- remove the slider panel/background so the control floats directly over the cartography;
+- use a slim track, large circular thumb and discrete reference dots inspired by the approved visual reference;
+- place one compact two-state **Tilt / Zoom** toggle directly below the vertical slider;
+- do not add a separate North button to this control group; retain MapLibre's native compass at the top-right;
+- explicitly inset the compass below the Android status area and keep the top-right free from spike/status wording;
+- move/compact the spike information panel to the top-left and perform a general spacing/alignment sweep;
+- make control contrast map-aware: the current light topo style uses dark slider/toggle controls, while a future dark map/theme must switch them to a light palette. Resolve this from the actual map/theme backdrop rather than assuming the phone system theme always matches the map.
+
+The contrast requirement is structural rather than cosmetic: map controls must remain immediately legible over both light and dark cartography without adding a large opaque control panel.
+
 ## Acceptance for this pass
 
 - Run #79 remains the accepted physical baseline and is not regressed.

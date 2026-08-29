@@ -155,6 +155,18 @@ private fun OfflineEryriPass3Map(packages: Pass3OfflineMapPackages) {
                     status = "Loading embedded map + relief + contours…"
                     mapView.getMapAsync { map ->
                         currentMap = map
+                        val density = viewContext.resources.displayMetrics.density
+                        map.uiSettings.apply {
+                            setCompassEnabled(true)
+                            setCompassGravity(android.view.Gravity.TOP or android.view.Gravity.END)
+                            setCompassMargins(
+                                0,
+                                (56f * density).roundToInt(),
+                                (14f * density).roundToInt(),
+                                0,
+                            )
+                            setCompassFadeFacingNorth(false)
+                        }
                         status = "Renderer ready; loading local style…"
                         map.setStyle(
                             Style.Builder().fromJson(pass3OfflineEryriStyle(packages)),
@@ -174,24 +186,25 @@ private fun OfflineEryriPass3Map(packages: Pass3OfflineMapPackages) {
 
         Surface(
             modifier = Modifier
-                .align(Alignment.TopCenter)
+                .align(Alignment.TopStart)
                 .statusBarsPadding()
-                .padding(12.dp),
+                .fillMaxWidth(0.68f)
+                .padding(start = 12.dp, top = 10.dp),
             shape = MaterialTheme.shapes.medium,
-            tonalElevation = 4.dp,
+            tonalElevation = 2.dp,
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("TrailCharter offline UK map spike", style = MaterialTheme.typography.titleSmall)
+                Text("Eryri offline topo", style = MaterialTheme.typography.titleSmall)
                 Text(status, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    "Eryri • z15 vectors • z16 summit relief • OS 10 m contours",
-                    style = MaterialTheme.typography.bodySmall,
+                    "z15 vectors • z16 relief • OS 10 m contours",
+                    style = MaterialTheme.typography.labelSmall,
                 )
                 Text(
-                    "Map © OpenStreetMap contributors / Protomaps • relief © Mapterhorn • contours © Ordnance Survey",
+                    "OSM / Protomaps • Mapterhorn • Ordnance Survey",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -199,12 +212,18 @@ private fun OfflineEryriPass3Map(packages: Pass3OfflineMapPackages) {
         }
 
         currentMap?.let { map ->
-            Pass3CameraControlPanel(
-                map = map,
-                mode = controlMode,
-                liveTilt = liveTilt,
-                liveZoom = liveZoom,
-                onModeChanged = { controlMode = it },
+            val tiltSelected = controlMode == Pass3CameraControl.TILT
+            MapSpikeVerticalCameraControls(
+                tiltSelected = tiltSelected,
+                value = if (tiltSelected) liveTilt else liveZoom,
+                valueRange = if (tiltSelected) 0f..MAX_CAMERA_TILT else MIN_CAMERA_ZOOM..MAX_CAMERA_ZOOM,
+                onValueChange = { value -> applyPass3CameraValue(map, controlMode, value) },
+                onTiltSelected = { controlMode = Pass3CameraControl.TILT },
+                onZoomSelected = { controlMode = Pass3CameraControl.ZOOM },
+                mapBackdropIsDark = false,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 10.dp),
             )
         }
     }
