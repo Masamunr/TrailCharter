@@ -57,11 +57,41 @@ private data class RoutingBenchmark(
     val heapDeltaBytes: Long,
 )
 
+private data class RoutingSpikeScenario(
+    val buttonLabel: String,
+    val calculatingMessage: String,
+    val successMessage: String,
+    val waypoints: List<RouteWaypoint>,
+)
+
+private val yrWyddfaScenario = RoutingSpikeScenario(
+    buttonLabel = "Run Yr Wyddfa WALK test",
+    calculatingMessage = "Routing Pen-y-Pass → Pyg Track → Yr Wyddfa…",
+    successMessage = "Yr Wyddfa magnetic WALK route calculated",
+    waypoints = listOf(
+        RouteWaypoint(GeoPoint(latitude = 53.0806, longitude = -4.0207), "Pen-y-Pass"),
+        RouteWaypoint(GeoPoint(latitude = 53.0765, longitude = -4.0445), "Pyg Track via"),
+        RouteWaypoint(GeoPoint(latitude = 53.0685, longitude = -4.0762), "Yr Wyddfa"),
+    ),
+)
+
+// Independent east-area safety/fidelity test. The existing W5_N50 routing tile already covers
+// Capel Curig and Moel Siabod, so this increases geographic evidence without enlarging routing data.
+private val moelSiabodScenario = RoutingSpikeScenario(
+    buttonLabel = "Run Moel Siabod WALK test",
+    calculatingMessage = "Routing Plas y Brenin → Moel Siabod…",
+    successMessage = "Moel Siabod magnetic WALK route calculated",
+    waypoints = listOf(
+        RouteWaypoint(GeoPoint(latitude = 53.10213, longitude = -3.91842), "Plas y Brenin"),
+        RouteWaypoint(GeoPoint(latitude = 53.07319, longitude = -3.93407), "Moel Siabod"),
+    ),
+)
+
 /**
- * Deliberately small technical UI for the first BRouter physical proof.
+ * Deliberately small technical UI for BRouter physical proof.
  *
- * It does not attempt to be the eventual TrailCharter route-planning interface. The fixed three
- * Eryri waypoints let us compare snapping/route quality and runtime measurements before designing
+ * It does not attempt to be the eventual TrailCharter route-planning interface. Fixed Eryri
+ * scenarios let us compare snapping/route quality and runtime measurements before designing
  * magnetic-route interactions around an engine that has not yet earned selection.
  */
 @Composable
@@ -167,29 +197,52 @@ internal fun BRouterRoutingSpikeOverlay(
                     Text(if (importing) "Importing…" else "Choose routing package")
                 }
             } else {
-                Button(
-                    enabled = !calculating && !importing,
-                    onClick = {
+                RoutingScenarioButton(
+                    scenario = yrWyddfaScenario,
+                    calculating = calculating,
+                    importing = importing,
+                    onRun = { scenario ->
                         calculating = true
                         benchmark = null
-                        message = "Routing Pen-y-Pass → Pyg Track → Yr Wyddfa…"
+                        message = scenario.calculatingMessage
                         scope.launch {
                             runCatching {
-                                calculateBenchmark(installed)
+                                calculateBenchmark(installed, scenario)
                             }.onSuccess { (route, metrics) ->
                                 renderRoute(map, route.geometry.points, routeOpacity)
                                 benchmark = metrics
                                 calculating = false
-                                message = "Magnetic three-point WALK route calculated"
+                                message = scenario.successMessage
                             }.onFailure { error ->
                                 calculating = false
                                 message = "Routing failed: ${error.message.orEmpty()}"
                             }
                         }
                     },
-                ) {
-                    Text(if (calculating) "Calculating…" else "Run 3-point WALK test")
-                }
+                )
+                RoutingScenarioButton(
+                    scenario = moelSiabodScenario,
+                    calculating = calculating,
+                    importing = importing,
+                    onRun = { scenario ->
+                        calculating = true
+                        benchmark = null
+                        message = scenario.calculatingMessage
+                        scope.launch {
+                            runCatching {
+                                calculateBenchmark(installed, scenario)
+                            }.onSuccess { (route, metrics) ->
+                                renderRoute(map, route.geometry.points, routeOpacity)
+                                benchmark = metrics
+                                calculating = false
+                                message = scenario.successMessage
+                            }.onFailure { error ->
+                                calculating = false
+                                message = "Routing failed: ${error.message.orEmpty()}"
+                            }
+                        }
+                    },
+                )
                 Button(
                     enabled = !calculating && !importing,
                     onClick = { importLauncher.launch(arrayOf("*/*")) },
@@ -201,19 +254,31 @@ internal fun BRouterRoutingSpikeOverlay(
     }
 }
 
+@Composable
+private fun RoutingScenarioButton(
+    scenario: RoutingSpikeScenario,
+    calculating: Boolean,
+    importing: Boolean,
+    onRun: (RoutingSpikeScenario) -> Unit,
+) {
+    Button(
+        enabled = !calculating && !importing,
+        onClick = { onRun(scenario) },
+    ) {
+        Text(if (calculating) "Calculating…" else scenario.buttonLabel)
+    }
+}
+
 private suspend fun calculateBenchmark(
     routingPackage: InstalledOfflineRoutingPackage,
+    scenario: RoutingSpikeScenario,
 ): Pair<com.masamunr.trailcharter.routing.RoutingResult, RoutingBenchmark> {
     val runtime = Runtime.getRuntime()
     val heapBefore = runtime.totalMemory() - runtime.freeMemory()
     val started = SystemClock.elapsedRealtime()
     val result = BRouterRoutingEngine(routingPackage).calculateRoute(
         RoutingRequest(
-            waypoints = listOf(
-                RouteWaypoint(GeoPoint(latitude = 53.0806, longitude = -4.0207), "Pen-y-Pass"),
-                RouteWaypoint(GeoPoint(latitude = 53.0765, longitude = -4.0445), "Pyg Track via"),
-                RouteWaypoint(GeoPoint(latitude = 53.0685, longitude = -4.0762), "Yr Wyddfa"),
-            ),
+            waypoints = scenario.waypoints,
             travelMode = TravelMode.WALK,
             planningMode = RoutePlanningMode.MAGNETIC,
         ),
