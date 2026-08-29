@@ -268,7 +268,7 @@ jobs:
 
           BADGING=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK_PATH")
           printf '%s\n' "$BADGING" | head -n 3
-          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='17'" <<< "$BADGING"
+          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='18'" <<< "$BADGING"
 
           PERMISSIONS=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$APK_PATH")
           printf '%s\n' "$PERMISSIONS"
