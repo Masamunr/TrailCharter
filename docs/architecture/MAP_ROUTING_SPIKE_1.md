@@ -60,13 +60,23 @@ This branch introduces engine-neutral contracts and a renderer proof:
 
 Room schema is unchanged. No production renderer/routing engine is selected.
 
+## AGREE: generated-route safety gate
+
+`docs/architecture/ROUTING_SAFETY_PRINCIPLES.md` is authoritative for generated-route safety.
+
+For guided/magnetic walking routes, TrailCharter must not invent arbitrary off-network shortcuts. Generated geometry must remain on known routable paths, tracks, roads or other explicitly routable ways represented in the routing dataset. If the routing engine cannot provide a credible on-network route, TrailCharter should fail or clearly report that no suitable guided route is available rather than silently drawing an off-path alternative.
+
+Manual/direct route planning remains allowed, but must be clearly distinguished from app-generated guidance so the product does not imply that TrailCharter assessed or recommended a manually drawn off-path line.
+
+The Run #141 physical route is therefore not a route-quality PASS. The opacity control exposed a short excursion away from the established mapped path around the intermediate Pyg Track shaping point. That section remains a **route-fidelity FAIL** until the controlled misplaced-via correction test proves otherwise.
+
 ## Current technical interpretation
 
 1. **MapLibre is physically viable for the current offline topo spike, but still not production-selected.**
 2. The independent package boundary is physically proven and can now be reused for routing-data experiments.
 3. Faint native-z16 raster-DEM hillshade joins remain a known non-blocking rendering defect; do not mislabel them as contour or package corruption.
 4. MapLibre's transitive permissions are not a blocker because TrailCharter removes them during manifest merge, but the final-APK permission check remains a hard CI guard until individual permissions are deliberately introduced.
-5. **BRouter remains the lower-complexity routing candidate at runtime** for an outdoor-first implementation, but its build/distribution path needs a deliberate reproducible source-module or package strategy.
+5. **BRouter remains the lower-complexity routing candidate at runtime**, but route fidelity to the known routable network is now a hard safety acceptance criterion in addition to build/distribution evidence.
 6. **Valhalla remains the richer routing candidate** where robust map matching, mixed travel modes and possible future traffic integration carry more weight, with a larger native integration and version-compatibility surface.
 7. Map rendering and routing remain separate interfaces regardless of eventual engine choices.
 8. Aerial imagery remains technically straightforward at renderer level but provider licensing, attribution, caching and offline rights are the real constraints.
@@ -119,6 +129,7 @@ For BRouter, then Valhalla:
 
 - representative Eryri walking route quality;
 - start/end snapping and intermediate via-point behaviour;
+- generated-route fidelity to known mapped/routable paths, including consequential terrain;
 - recalculation after moving a waypoint;
 - distance and elevation/ETA output;
 - calculation time and peak memory;
