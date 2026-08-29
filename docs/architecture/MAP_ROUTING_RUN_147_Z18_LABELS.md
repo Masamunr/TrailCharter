@@ -67,24 +67,22 @@ For the next cartography spike, add reliable named hiking/walking route-relation
 
 Requirements:
 
-- prefer authoritative OSM-derived `route=hiking` / walking-route relation names and references;
+- prefer OSM-derived `route=hiking` / `route=foot` / walking-route relation names and references;
 - keep extraction/build work on the desktop/package-factory side so Android runtime remains offline and lightweight;
 - render relation-derived route names along the relevant route geometry at useful walking zooms;
 - deduplicate or suppress relation labels where the same route name is already satisfactorily supplied by a named way;
 - never infer or manufacture a route name when source data is ambiguous;
 - use **Watkin Path** as an explicit physical acceptance case for the next build.
 
-The implementation route remains a technical detail: first inspect whether the existing Protomaps source exposes sufficient relation-derived data; if not, add a small dedicated relation-derived vector layer during desktop package generation.
-
 ## AGREE: incremental Eryri geography expansion
 
 Grow the test geography gradually rather than jumping from the current Yr Wyddfa-centred package to a whole-country package.
 
-Current spike bounds are approximately:
+Previous spike bounds were approximately:
 
 `-4.22, 52.97, -3.95, 53.18`
 
-For the next package pass, extend the eastern edge to approximately **-3.88**, keeping the other bounds broadly stable. The intended additional test area is **Capel Curig / Moel Siabod** and its surrounding walking network.
+Pass 4 extends the eastern edge to approximately **-3.88**, keeping the other bounds stable. The intended additional test area is **Capel Curig / Moel Siabod** and its surrounding walking network.
 
 The purpose is not merely to add more map for its own sake. Each incremental expansion must record how package growth affects:
 
@@ -97,12 +95,29 @@ The purpose is not merely to add more map for its own sake. Each incremental exp
 
 Do not reduce agreed cartographic quality merely to hold the package to an arbitrary size. Use measured size/performance evidence to determine sensible future regional-package boundaries.
 
+## Run #160 CI evidence: Eryri East Pass 4
+
+Run #160 / isolated map-spike **versionCode 21** is fully green at code commit `c0f2549f457262403f9a035bfc88203a87f4e3f6`.
+
+CI confirms:
+
+- the expanded map-package bounds are `-4.22, 52.97, -3.88, 53.18`;
+- schema 2 adds a dedicated OSM-derived hiking/walking relation GeoJSON payload;
+- the generated relation payload contains **21 named route relations** and explicitly contains **Watkin Path**;
+- the standalone physical-test map package is **183,152,066 bytes** as downloaded from the successful Run #160 artifact;
+- the relation overlay itself is **591,980 bytes**, so the label-relation data is negligible compared with the terrain payload;
+- the BRouter routing package remains unchanged and continues to use `W5_N50.rd5`; no routing-data growth was required for Capel Curig / Moel Siabod;
+- tests, lint, APK assembly, no-embedded-map/routing checks, version/privacy gates and continuity signing all pass;
+- the spike retains z18 inspection zoom, the z16.25 hillshade ceiling, adjustable planned-route opacity and the hard guided-route safety rule.
+
+This is **CI/build evidence only**. Relation-label readability, Watkin Path rendering, expanded-area cartographic quality, import behaviour and the new Moel Siabod route remain pending physical acceptance on-device.
+
 ## Next physical acceptance focus
 
 1. confirm larger walking-route labels are readable at ordinary planning zooms without excessive collision or repetition;
-2. confirm **Watkin Path** is reliably labelled through route-relation support rather than hard-coding;
+2. confirm **Watkin Path** is reliably rendered through route-relation support rather than hard-coding;
 3. confirm the expanded Capel Curig / Moel Siabod area imports and renders at the same expected cartographic quality;
-4. record the size increase versus the previous Eryri package and note any material import/rendering impact;
-5. run at least one walking-route test in the newly added eastern area so BRouter is assessed outside the original Yr Wyddfa test corridor;
-6. retain z18 inspection zoom and adjustable route opacity for route-fidelity review;
-7. continue to enforce the routing-safety rule that guided/magnetic routes must remain on known routable network geometry.
+4. note any material import/load/interaction impact from the larger map package;
+5. run the new **Plas y Brenin → Moel Siabod** WALK test so BRouter is assessed outside the original Yr Wyddfa corridor;
+6. use route opacity and z17-z18 inspection to check whether that generated route remains on the established mapped path network;
+7. retain the routing-safety requirement that guided/magnetic routes must remain on known routable network geometry.
