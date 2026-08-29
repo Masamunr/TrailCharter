@@ -123,14 +123,6 @@ if "output.versionCode.set(13)" not in text:
 text = text.replace("output.versionCode.set(13)", "output.versionCode.set(14)", 1)
 gradle.write_text(text, encoding="utf-8")
 
-workflow = Path(".github/workflows/android-ci.yml")
-text = workflow.read_text(encoding="utf-8")
-expected = "package: name='com.masamunr.trailcharter.mapspike' versionCode='13'"
-if expected not in text:
-    raise SystemExit("CI spike versionCode 13 assertion not found")
-text = text.replace(expected, "package: name='com.masamunr.trailcharter.mapspike' versionCode='14'", 1)
-workflow.write_text(text, encoding="utf-8")
-
 doc = Path("docs/architecture/MAP_CARTOGRAPHY_PASS_3.md")
 text = doc.read_text(encoding="utf-8")
 marker = "## Acceptance for this pass\n"
