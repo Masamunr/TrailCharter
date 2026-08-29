@@ -144,13 +144,11 @@ internal fun BRouterRoutingSpikeOverlay(
                 Button(
                     enabled = !importing,
                     onClick = {
-                        importLauncher.launch(
-                            arrayOf(
-                                "application/zip",
-                                "application/x-zip-compressed",
-                                "application/octet-stream",
-                            ),
-                        )
+                        // Some Android document providers label ZIP files inconsistently and hide
+                        // them when OpenDocument is restricted to ZIP-specific MIME types. Show
+                        // all documents here and rely on TrailCharter's manifest/hash validation
+                        // to reject anything that is not the expected routing package.
+                        importLauncher.launch(arrayOf("*/*"))
                     },
                 ) {
                     Text(if (importing) "Importing…" else "Choose routing package")
