@@ -35,6 +35,7 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
@@ -51,7 +52,7 @@ private const val MAX_CAMERA_ZOOM = 18f
 private const val MAX_CAMERA_TILT = 60f
 
 /**
- * Cartography pass 3 renderer using an explicitly imported regional package.
+ * Cartography pass 3/4 renderer using an explicitly imported regional package.
  *
  * Heavy cartographic preparation now happens outside the APK. The Android spike imports a package
  * chosen through the system picker, validates it, and renders only app-private local files.
@@ -122,9 +123,9 @@ private fun Pass3MapImportScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Eryri offline map package", style = MaterialTheme.typography.headlineSmall)
+            Text("Eryri East offline map package", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "This spike now keeps the regional map outside the APK. Choose the Eryri test package; TrailCharter will validate it and copy it into private local storage.",
+                "Choose the expanded Eryri test package; TrailCharter will validate it and copy it into private local storage.",
                 style = MaterialTheme.typography.bodyMedium,
             )
             Text(
@@ -205,7 +206,7 @@ private fun OfflineEryriPass3Map(packages: InstalledOfflineMapPackage) {
                         .maxZoomPreference(MAX_CAMERA_ZOOM.toDouble()),
                 ).also { mapView ->
                     currentMapView = mapView
-                    status = "Loading imported map + relief + contours…"
+                    status = "Loading expanded map + relief + contours + route names…"
                     mapView.getMapAsync { map ->
                         currentMap = map
                         val density = viewContext.resources.displayMetrics.density
@@ -230,7 +231,7 @@ private fun OfflineEryriPass3Map(packages: InstalledOfflineMapPackage) {
                                 .target(LatLng(53.0685, -4.0760))
                                 .zoom(11.4)
                                 .build()
-                            status = "Imported Eryri package loaded"
+                            status = "Expanded Eryri package loaded"
                         }
                     }
                 }
@@ -250,10 +251,10 @@ private fun OfflineEryriPass3Map(packages: InstalledOfflineMapPackage) {
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("Eryri offline topo", style = MaterialTheme.typography.titleSmall)
+                Text("Eryri East offline topo", style = MaterialTheme.typography.titleSmall)
                 Text(status, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    "z15 vectors • z16 relief • OS 10 m contours • z18 inspection",
+                    "z15 vectors • z16 relief patches • OS 10 m contours • z18 inspection",
                     style = MaterialTheme.typography.labelSmall,
                 )
                 Text(
@@ -312,12 +313,15 @@ private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String
     val terrainPath = pass3JsonEscape(packages.terrain.absolutePath)
     val contourPath = pass3JsonEscape(packages.contours.absolutePath)
     val glyphRoot = pass3JsonEscape(packages.glyphDirectory.absolutePath)
+    // Parse and re-serialize before embedding so a user-selected file cannot escape the GeoJSON
+    // source position in the style document even if its bytes were deliberately malformed.
+    val hikingRoutesJson = JSONObject(packages.hikingRoutes.readText(Charsets.UTF_8)).toString()
 
     return """
         {
           "version": 8,
-          "name": "TrailCharter Eryri offline topo pass 3",
-          "center": [-4.0760, 53.0685],
+          "name": "TrailCharter Eryri East offline topo pass 4",
+          "center": [-4.035, 53.075],
           "zoom": 11.4,
           "glyphs": "file://$glyphRoot/{fontstack}/{range}.pbf",
           "sources": {
@@ -340,6 +344,11 @@ private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String
               "url": "pmtiles://file://$contourPath",
               "maxzoom": 14,
               "attribution": "Contains OS data © Crown copyright and database right 2026"
+            },
+            "hikingRoutes": {
+              "type": "geojson",
+              "data": $hikingRoutesJson,
+              "attribution": "© OpenStreetMap contributors"
             }
           },
           "layers": [
@@ -575,6 +584,29 @@ private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String
               }
             },
             {
+              "id": "hiking-route-relation-labels",
+              "type": "symbol",
+              "source": "hikingRoutes",
+              "minzoom": 13.5,
+              "layout": {
+                "symbol-placement": "line",
+                "symbol-spacing": 620,
+                "text-field": ["get", "name"],
+                "text-font": ["TrailCharterSans"],
+                "text-size": ["interpolate", ["linear"], ["zoom"], 13.5, 12.5, 14, 13.0, 16, 14.5, 18, 16.0],
+                "text-max-angle": 28,
+                "text-padding": 20,
+                "text-keep-upright": true,
+                "text-allow-overlap": false
+              },
+              "paint": {
+                "text-color": "#533C2F",
+                "text-halo-color": "#F3EFE6",
+                "text-halo-width": 2.0,
+                "text-halo-blur": 0.25
+              }
+            },
+            {
               "id": "named-walking-path-labels",
               "type": "symbol",
               "source": "basemap",
@@ -587,20 +619,20 @@ private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String
               ],
               "layout": {
                 "symbol-placement": "line",
-                "symbol-spacing": 450,
+                "symbol-spacing": 600,
                 "text-field": ["get", "name"],
                 "text-font": ["TrailCharterSans"],
-                "text-size": ["interpolate", ["linear"], ["zoom"], 14, 10.5, 18, 13.0],
+                "text-size": ["interpolate", ["linear"], ["zoom"], 14, 12.5, 16, 14.0, 18, 15.5],
                 "text-max-angle": 30,
-                "text-padding": 12,
+                "text-padding": 18,
                 "text-keep-upright": true,
                 "text-allow-overlap": false
               },
               "paint": {
                 "text-color": "#5F4635",
-                "text-halo-color": "#F1EDE4",
-                "text-halo-width": 1.5,
-                "text-halo-blur": 0.2
+                "text-halo-color": "#F3EFE6",
+                "text-halo-width": 1.8,
+                "text-halo-blur": 0.25
               }
             },
             {
