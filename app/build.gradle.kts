@@ -94,11 +94,11 @@ android {
 }
 
 // Keep the normal TrailCharter application identity/version at versionCode 11. Only the isolated
-// debug .mapspike APK advances for physical spike installs; pass 3 UI refinement is versionCode 14.
+// debug .mapspike APK advances for physical spike installs; Run #105 refinement is versionCode 15.
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.outputs.forEach { output ->
-            output.versionCode.set(14)
+            output.versionCode.set(15)
         }
     }
 }
