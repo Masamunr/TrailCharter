@@ -2,6 +2,8 @@ package com.masamunr.trailcharter.map
 
 import android.content.Context
 import android.graphics.Color
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,15 +12,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,9 +31,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import java.io.File
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
@@ -40,15 +43,6 @@ import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 
-private const val P3_BASEMAP_ASSET = "map_spike/eryri-basemap.pmtiles"
-private const val P3_TERRAIN_ASSET = "map_spike/eryri-terrain.pmtiles"
-private const val P3_CONTOURS_ASSET = "map_spike/eryri-contours.pmtiles"
-private const val P3_GLYPH_ASSET = "map_spike/glyphs/TrailCharterSans/0-255.pbf"
-
-private const val P3_BASEMAP_FILE = "eryri-basemap.pmtiles"
-private const val P3_TERRAIN_FILE = "eryri-terrain.pmtiles"
-private const val P3_CONTOURS_FILE = "eryri-contours.pmtiles"
-
 private const val MIN_CAMERA_ZOOM = 9f
 // Pass 3 contains genuine Mapterhorn DEM through z16 only. Staying at the native DEM ceiling also
 // avoids MapLibre Native's known hillshade tile-edge seam when raster-dem data is overzoomed.
@@ -56,46 +50,106 @@ private const val MAX_CAMERA_ZOOM = 16f
 private const val MAX_CAMERA_TILT = 60f
 
 /**
- * Cartography pass 3 physical renderer.
+ * Cartography pass 3 renderer using an explicitly imported regional package.
  *
- * This deliberately remains a self-contained embedded-package spike for one final phone comparison.
- * The follow-on packaging work moves heavy cartographic preparation off the APK and onto the PC.
+ * Heavy cartographic preparation now happens outside the APK. The Android spike imports a package
+ * chosen through the system picker, validates it, and renders only app-private local files.
  */
 @Composable
 internal fun OfflineUkMapPass3Screen() {
     val context = LocalContext.current
-    var packages by remember { mutableStateOf<Pass3OfflineMapPackages?>(null) }
-    var preparationError by remember { mutableStateOf<String?>(null) }
+    val applicationContext = context.applicationContext
+    val scope = rememberCoroutineScope()
+    var packages by remember(applicationContext) {
+        mutableStateOf(loadInstalledEryriMapPackage(applicationContext))
+    }
+    var importing by remember { mutableStateOf(false) }
+    var importError by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(context.applicationContext) {
-        runCatching {
-            withContext(Dispatchers.IO) {
-                ensurePass3OfflineMapPackages(context.applicationContext)
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            importing = true
+            importError = null
+            scope.launch {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        importEryriMapPackage(applicationContext, uri)
+                    }
+                }.onSuccess { installed ->
+                    packages = installed
+                    importing = false
+                }.onFailure { error ->
+                    importing = false
+                    importError = "${error::class.java.simpleName}: ${error.message.orEmpty()}"
+                }
             }
-        }.onSuccess {
-            packages = it
-        }.onFailure { error ->
-            preparationError = "${error::class.java.simpleName}: ${error.message.orEmpty()}"
         }
     }
 
-    when {
-        preparationError != null -> Pass3MapStatusScreen(
-            title = "Offline map package error",
-            body = preparationError.orEmpty(),
+    val installed = packages
+    if (installed == null) {
+        Pass3MapImportScreen(
+            importing = importing,
+            error = importError,
+            onImport = {
+                importLauncher.launch(
+                    arrayOf(
+                        "application/zip",
+                        "application/x-zip-compressed",
+                        "application/octet-stream",
+                    ),
+                )
+            },
         )
-
-        packages == null -> Pass3MapStatusScreen(
-            title = "Preparing offline Eryri map",
-            body = "Installing the embedded vector, terrain, contour and label packages into TrailCharter's private storage…",
-        )
-
-        else -> OfflineEryriPass3Map(packages = packages!!)
+    } else {
+        OfflineEryriPass3Map(packages = installed)
     }
 }
 
 @Composable
-private fun OfflineEryriPass3Map(packages: Pass3OfflineMapPackages) {
+private fun Pass3MapImportScreen(
+    importing: Boolean,
+    error: String?,
+    onImport: () -> Unit,
+) {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("Eryri offline map package", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "This spike now keeps the regional map outside the APK. Choose the Eryri test package; TrailCharter will validate it and copy it into private local storage.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                "Import and rendering remain local. No broad storage, network or location permission is required.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (!error.isNullOrBlank()) {
+                Text(
+                    "Import failed: $error",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Button(
+                onClick = onImport,
+                enabled = !importing,
+            ) {
+                Text(if (importing) "Importing and validating…" else "Choose map package")
+            }
+        }
+    }
+}
+
+@Composable
+private fun OfflineEryriPass3Map(packages: InstalledOfflineMapPackage) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var currentMapView by remember { mutableStateOf<MapView?>(null) }
     var currentMap by remember { mutableStateOf<MapLibreMap?>(null) }
@@ -150,7 +204,7 @@ private fun OfflineEryriPass3Map(packages: Pass3OfflineMapPackages) {
                         .maxZoomPreference(MAX_CAMERA_ZOOM.toDouble()),
                 ).also { mapView ->
                     currentMapView = mapView
-                    status = "Loading embedded map + relief + contours…"
+                    status = "Loading imported map + relief + contours…"
                     mapView.getMapAsync { map ->
                         currentMap = map
                         val density = viewContext.resources.displayMetrics.density
@@ -175,7 +229,7 @@ private fun OfflineEryriPass3Map(packages: Pass3OfflineMapPackages) {
                                 .target(LatLng(53.0685, -4.0760))
                                 .zoom(11.4)
                                 .build()
-                            status = "Offline Eryri pass 3 loaded"
+                            status = "Imported Eryri package loaded"
                         }
                     }
                 }
@@ -222,7 +276,8 @@ private fun OfflineEryriPass3Map(packages: Pass3OfflineMapPackages) {
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .navigationBarsPadding()
-                    .padding(end = 10.dp, bottom = 54.dp),
+                    // Run #111 physical feedback: raise the complete control cluster by about 2 cm.
+                    .padding(end = 10.dp, bottom = 180.dp),
             )
         }
     }
@@ -246,70 +301,12 @@ private enum class Pass3CameraControl {
     ZOOM,
 }
 
-@Composable
-private fun Pass3MapStatusScreen(title: String, body: String) {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(title, style = MaterialTheme.typography.headlineSmall)
-            Text(body, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
-private data class Pass3OfflineMapPackages(
-    val basemap: File,
-    val terrain: File,
-    val contours: File,
-    val glyphDirectory: File,
-)
-
-private fun ensurePass3OfflineMapPackages(context: Context): Pass3OfflineMapPackages {
-    val packageDir = context.filesDir.resolve("map_spike_pass3").also { it.mkdirs() }
-    val glyphDirectory = packageDir.resolve("glyphs")
-    copyPass3AssetIfNeeded(
-        context,
-        P3_GLYPH_ASSET,
-        glyphDirectory.resolve("TrailCharterSans/0-255.pbf"),
-    )
-
-    return Pass3OfflineMapPackages(
-        basemap = copyPass3AssetIfNeeded(context, P3_BASEMAP_ASSET, packageDir.resolve(P3_BASEMAP_FILE)),
-        terrain = copyPass3AssetIfNeeded(context, P3_TERRAIN_ASSET, packageDir.resolve(P3_TERRAIN_FILE)),
-        contours = copyPass3AssetIfNeeded(context, P3_CONTOURS_ASSET, packageDir.resolve(P3_CONTOURS_FILE)),
-        glyphDirectory = glyphDirectory,
-    )
-}
-
-private fun copyPass3AssetIfNeeded(context: Context, assetPath: String, destination: File): File {
-    destination.parentFile?.mkdirs()
-    val assetLength = context.assets.openFd(assetPath).use { it.length }
-    if (!destination.exists() || destination.length() != assetLength) {
-        val temporary = File(destination.parentFile, "${destination.name}.tmp")
-        context.assets.open(assetPath).use { input ->
-            temporary.outputStream().use { output -> input.copyTo(output) }
-        }
-        check(temporary.length() == assetLength) {
-            "Incomplete embedded map package copy: $assetPath"
-        }
-        if (destination.exists()) destination.delete()
-        check(temporary.renameTo(destination)) {
-            "Could not install embedded map package: $assetPath"
-        }
-    }
-    return destination
-}
-
 private fun initialisePass3OfflineMapLibre(context: Context) {
     MapLibre.getInstance(context.applicationContext)
     MapLibre.setConnected(false)
 }
 
-private fun pass3OfflineEryriStyle(packages: Pass3OfflineMapPackages): String {
+private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String {
     val basemapPath = pass3JsonEscape(packages.basemap.absolutePath)
     val terrainPath = pass3JsonEscape(packages.terrain.absolutePath)
     val contourPath = pass3JsonEscape(packages.contours.absolutePath)
