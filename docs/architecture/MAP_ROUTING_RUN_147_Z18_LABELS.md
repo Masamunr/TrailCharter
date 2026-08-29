@@ -40,6 +40,21 @@ First implementation:
 
 Examples expected to benefit where source data carries the names include well-known Eryri routes such as **Pyg Track** and **Watkin Path**.
 
+## AGREE: walking-route label readability
+
+Physical testing of Run #151 confirms the named-track labels are useful but currently too small and too dependent on very close zoom.
+
+Refine the walking-route label style so route names are readable during ordinary route planning rather than only at z17-z18:
+
+- keep labels available from approximately z14;
+- increase text size progressively with zoom, targeting roughly **12–13 px around z14**, **14 px around z16**, and **15–16 px by z18**;
+- strengthen the pale text halo modestly so labels remain legible over contours and hillshade;
+- tune line-label spacing/collision behaviour so larger labels do not simply disappear more often;
+- repeat long route names sparingly rather than cluttering the map;
+- give named walking paths/tracks useful visual priority while keeping them subordinate to an active planned-route overlay.
+
+The acceptance target is that a walker can identify a named route at a normal planning zoom without needing to zoom all the way to z18.
+
 ## EXPLORE: hiking-route relation labels
 
 A named OSM hiking route may span several constituent ways and may be represented more reliably by a route relation than by way-level `name` tags. If physical testing shows important named routes missing or fragmented, investigate extracting named hiking-route relations into the desktop-built regional map package.
@@ -52,4 +67,5 @@ Do not add a separate relation payload merely for theoretical completeness. Firs
 2. confirm hillshade disappears cleanly above its useful native range without leaving an objectionable visual transition;
 3. inspect the small BRouter/path offsets at z17-z18 and determine whether the route remains on the established routable corridor;
 4. verify useful path names appear where source data contains them, without excessive label clutter;
-5. retain adjustable route opacity so route geometry can still be compared directly with the path beneath it.
+5. confirm larger route labels are readable at ordinary planning zooms without excessive collision or repetition;
+6. retain adjustable route opacity so route geometry can still be compared directly with the path beneath it.
