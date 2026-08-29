@@ -52,14 +52,6 @@ android {
 
     sourceSets { getByName("main").res.srcDir(generatedLauncherResDir) }
 
-    // PMTiles carries its own tile compression. Pass 3 also embeds one tiny local glyph PBF for
-    // offline contour labels. Both are copied by descriptor/length into app-private storage, so
-    // keep those asset types stored rather than deflated for AssetManager.openFd().
-    androidResources {
-        noCompress += "pmtiles"
-        noCompress += "pbf"
-    }
-
     signingConfigs {
         if (ciSigningConfigured) {
             create("continuityDebug") {
@@ -94,11 +86,11 @@ android {
 }
 
 // Keep the normal TrailCharter application identity/version at versionCode 11. Only the isolated
-// debug .mapspike APK advances for physical spike installs; Run #105 refinement is versionCode 15.
+// debug .mapspike APK advances for physical spike installs; the package-import split is version 16.
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.outputs.forEach { output ->
-            output.versionCode.set(15)
+            output.versionCode.set(16)
         }
     }
 }
