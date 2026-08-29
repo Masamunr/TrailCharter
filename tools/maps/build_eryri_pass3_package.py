@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the TrailCharter Eryri Pass 3 offline-map package on a desktop PC.
+"""Build the TrailCharter Eryri Pass 4 offline-map package on a desktop PC.
 
 This is spike tooling, not a final production package format. It deliberately keeps
 heavy cartographic preparation off the Android device and outside the APK.
@@ -10,7 +10,8 @@ Requirements:
   * Internet access while building the package
 
 The resulting ZIP contains a small manifest plus independently replaceable local
-basemap, terrain, contour and glyph files. Runtime TrailCharter remains offline.
+basemap, terrain, contour, hiking-route relation and glyph files. Runtime
+TrailCharter remains offline.
 """
 
 from __future__ import annotations
@@ -26,25 +27,36 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 
 PMTILES_VERSION = "1.31.2"
-SPIKE_BBOX = (-4.22, 52.97, -3.95, 53.18)
-TERRAIN_HIGH_BBOX = (-4.15, 53.035, -4.015, 53.12)
-TERRAIN_Z16_BBOX = (-4.105, 53.055, -4.045, 53.09)
+# Pass 4 extends the eastern edge into Capel Curig / Moel Siabod while keeping the
+# other bounds stable so package growth can be measured incrementally.
+SPIKE_BBOX = (-4.22, 52.97, -3.88, 53.18)
+TERRAIN_HIGH_BBOX = (-4.15, 53.035, -3.88, 53.12)
+TERRAIN_Z16_WYDDFA_BBOX = (-4.105, 53.055, -4.045, 53.09)
+TERRAIN_Z16_SIABOD_BBOX = (-3.97, 53.045, -3.90, 53.105)
 
 PROTOMAPS_URL = "https://data.source.coop/protomaps/openstreetmap/v4.pmtiles"
 MAPTERHORN_LOW_URL = "https://download.mapterhorn.com/planet.pmtiles"
 MAPTERHORN_HIGH_URL = "https://download.mapterhorn.com/6-31-20.pmtiles"
 OS_TERRAIN50_DOWNLOADS_URL = "https://api.os.uk/downloads/v1/products/Terrain50/downloads"
+OVERPASS_ENDPOINTS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+)
 GLYPH_URL = (
     "https://raw.githubusercontent.com/openmaptiles/fonts/"
     "025ff2b2f84cc0fdf11f7b1d74b3a784595fe7a4/Open%20Sans%20Regular/0-255.pbf"
 )
 
-PACKAGE_ID = "uk-wales-eryri-pass3-spike"
-PACKAGE_NAME = "Eryri Pass 3 offline topo"
+PACKAGE_ID = "uk-wales-eryri-east-pass4-spike"
+PACKAGE_NAME = "Eryri East Pass 4 offline topo"
+HIKING_ROUTES_PATH = "eryri-hiking-routes.geojson"
 
 
 def bbox_text(bounds: tuple[float, float, float, float]) -> str:
@@ -63,10 +75,35 @@ def download(url: str, destination: Path) -> None:
         url,
         headers={"User-Agent": "TrailCharter-map-package-spike/1"},
     )
-    with urllib.request.urlopen(request) as response, destination.open("wb") as output:
+    with urllib.request.urlopen(request, timeout=240) as response, destination.open("wb") as output:
         shutil.copyfileobj(response, output)
     if destination.stat().st_size <= 0:
         raise RuntimeError(f"Download produced an empty file: {destination}")
+
+
+def fetch_overpass(query: str) -> dict[str, object]:
+    encoded = urllib.parse.urlencode({"data": query}).encode("utf-8")
+    errors: list[str] = []
+    for endpoint in OVERPASS_ENDPOINTS:
+        print(f"Querying OSM hiking-route relations via {endpoint}", flush=True)
+        request = urllib.request.Request(
+            endpoint,
+            data=encoded,
+            headers={
+                "User-Agent": "TrailCharter-map-package-spike/1",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=240) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            if not isinstance(payload, dict) or not isinstance(payload.get("elements"), list):
+                raise RuntimeError("Overpass response did not contain an elements array")
+            return payload
+        except (OSError, RuntimeError, json.JSONDecodeError, urllib.error.URLError) as error:
+            errors.append(f"{endpoint}: {error}")
+            print(f"WARNING: {errors[-1]}", file=sys.stderr, flush=True)
+    raise RuntimeError("All Overpass endpoints failed: " + " | ".join(errors))
 
 
 def sha256(path: Path) -> str:
@@ -198,6 +235,100 @@ def clip_os_contours(source: Path, destination: Path) -> int:
         database.close()
 
 
+def route_member_near_package(coordinates: list[list[float]]) -> bool:
+    west, south, east, north = SPIKE_BBOX
+    margin = 0.015
+    return any(
+        west - margin <= lon <= east + margin and south - margin <= lat <= north + margin
+        for lon, lat in coordinates
+    )
+
+
+def build_hiking_routes_geojson(destination: Path) -> int:
+    west, south, east, north = SPIKE_BBOX
+    query = f"""[out:json][timeout:180];
+relation[\"type\"=\"route\"][\"route\"~\"^(hiking|foot|walking)$\"][\"name\"]({south},{west},{north},{east});
+out body geom;
+"""
+    payload = fetch_overpass(query)
+    features: list[dict[str, object]] = []
+
+    for element in payload.get("elements", []):
+        if not isinstance(element, dict) or element.get("type") != "relation":
+            continue
+        tags = element.get("tags")
+        members = element.get("members")
+        if not isinstance(tags, dict) or not isinstance(members, list):
+            continue
+        name = str(tags.get("name", "")).strip()
+        route = str(tags.get("route", "")).strip()
+        if not name or route not in {"hiking", "foot", "walking"}:
+            continue
+
+        lines: list[list[list[float]]] = []
+        for member in members:
+            if not isinstance(member, dict) or member.get("type") != "way":
+                continue
+            geometry = member.get("geometry")
+            if not isinstance(geometry, list):
+                continue
+            coordinates: list[list[float]] = []
+            for node in geometry:
+                if not isinstance(node, dict) or "lon" not in node or "lat" not in node:
+                    continue
+                coordinates.append([float(node["lon"]), float(node["lat"])])
+            if len(coordinates) >= 2 and route_member_near_package(coordinates):
+                lines.append(coordinates)
+
+        if not lines:
+            continue
+
+        properties: dict[str, object] = {
+            "name": name,
+            "route": route,
+            "relation_id": int(element.get("id", 0)),
+        }
+        for key in ("ref", "network", "operator", "name:cy"):
+            value = str(tags.get(key, "")).strip()
+            if value:
+                properties[key.replace(":", "_")] = value
+
+        geometry_object: dict[str, object]
+        if len(lines) == 1:
+            geometry_object = {"type": "LineString", "coordinates": lines[0]}
+        else:
+            geometry_object = {"type": "MultiLineString", "coordinates": lines}
+
+        features.append(
+            {
+                "type": "Feature",
+                "properties": properties,
+                "geometry": geometry_object,
+            }
+        )
+
+    features.sort(
+        key=lambda feature: (
+            str(feature["properties"].get("name", "")).casefold(),
+            int(feature["properties"].get("relation_id", 0)),
+        )
+    )
+    if not features:
+        raise RuntimeError("No named hiking/walking route relations were found in the expanded Eryri bounds")
+    if not any("watkin" in str(feature["properties"].get("name", "")).casefold() for feature in features):
+        raise RuntimeError(
+            "Expanded OSM relation extract does not contain a Watkin-named route; "
+            "do not silently claim the Watkin Path acceptance case"
+        )
+
+    destination.write_text(
+        json.dumps({"type": "FeatureCollection", "features": features}, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Named hiking/walking route relations: {len(features)}", flush=True)
+    return len(features)
+
+
 def manifest_entry(
     relative_path: str,
     file_path: Path,
@@ -212,6 +343,7 @@ def manifest_entry(
 
 
 def build_package(pmtiles: str, output: Path, keep_work: bool) -> None:
+    started = time.perf_counter()
     run(pmtiles, "--help")
 
     temporary = tempfile.TemporaryDirectory(prefix="trailcharter-map-package-")
@@ -231,13 +363,16 @@ def build_package(pmtiles: str, output: Path, keep_work: bool) -> None:
 
     basemap = package_root / "eryri-basemap.pmtiles"
     terrain_low = work / "eryri-terrain-z0-z12.pmtiles"
-    terrain_high = work / "eryri-terrain-z13-z15-core.pmtiles"
-    terrain_z16 = work / "eryri-terrain-z16-summit.pmtiles"
+    terrain_high = work / "eryri-terrain-z13-z15-core-east.pmtiles"
+    terrain_z16_wyddfa = work / "eryri-terrain-z16-wyddfa.pmtiles"
+    terrain_z16_siabod = work / "eryri-terrain-z16-siabod.pmtiles"
     terrain = package_root / "eryri-terrain.pmtiles"
     contours_mbtiles = work / "eryri-contours.mbtiles"
     contours = package_root / "eryri-contours.pmtiles"
+    hiking_routes = package_root / HIKING_ROUTES_PATH
     glyph = glyph_dir / "0-255.pbf"
 
+    stage = time.perf_counter()
     run(
         pmtiles,
         "extract",
@@ -246,6 +381,9 @@ def build_package(pmtiles: str, output: Path, keep_work: bool) -> None:
         f"--bbox={bbox_text(SPIKE_BBOX)}",
         "--maxzoom=15",
     )
+    print(f"Basemap stage: {time.perf_counter() - stage:.1f}s", flush=True)
+
+    stage = time.perf_counter()
     run(
         pmtiles,
         "extract",
@@ -267,8 +405,17 @@ def build_package(pmtiles: str, output: Path, keep_work: bool) -> None:
         pmtiles,
         "extract",
         MAPTERHORN_HIGH_URL,
-        str(terrain_z16),
-        f"--bbox={bbox_text(TERRAIN_Z16_BBOX)}",
+        str(terrain_z16_wyddfa),
+        f"--bbox={bbox_text(TERRAIN_Z16_WYDDFA_BBOX)}",
+        "--minzoom=16",
+        "--maxzoom=16",
+    )
+    run(
+        pmtiles,
+        "extract",
+        MAPTERHORN_HIGH_URL,
+        str(terrain_z16_siabod),
+        f"--bbox={bbox_text(TERRAIN_Z16_SIABOD_BBOX)}",
         "--minzoom=16",
         "--maxzoom=16",
     )
@@ -277,10 +424,13 @@ def build_package(pmtiles: str, output: Path, keep_work: bool) -> None:
         "merge",
         str(terrain_low),
         str(terrain_high),
-        str(terrain_z16),
+        str(terrain_z16_wyddfa),
+        str(terrain_z16_siabod),
         str(terrain),
     )
+    print(f"Terrain stage: {time.perf_counter() - stage:.1f}s", flush=True)
 
+    stage = time.perf_counter()
     os_json_path = work / "os-terrain50-downloads.json"
     download(OS_TERRAIN50_DOWNLOADS_URL, os_json_path)
     os_payload = json.loads(os_json_path.read_text(encoding="utf-8"))
@@ -295,20 +445,25 @@ def build_package(pmtiles: str, output: Path, keep_work: bool) -> None:
     copied = clip_os_contours(mbtiles_files[0], contours_mbtiles)
     print(f"OS contour tiles copied: {copied}", flush=True)
     run(pmtiles, "convert", str(contours_mbtiles), str(contours))
+    print(f"Contour stage: {time.perf_counter() - stage:.1f}s", flush=True)
+
+    stage = time.perf_counter()
+    route_count = build_hiking_routes_geojson(hiking_routes)
+    print(f"Hiking-route relation stage: {time.perf_counter() - stage:.1f}s", flush=True)
 
     download(GLYPH_URL, glyph)
 
-    files = [basemap, terrain, contours, glyph]
+    files = [basemap, terrain, contours, hiking_routes, glyph]
     for path in files:
         if not path.exists() or path.stat().st_size <= 0:
             raise RuntimeError(f"Expected package file is missing or empty: {path}")
 
     manifest = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "status": "EXPLORE_SPIKE",
         "packageId": PACKAGE_ID,
         "displayName": PACKAGE_NAME,
-        "geography": "Eryri, Wales, United Kingdom",
+        "geography": "Eryri including Capel Curig and Moel Siabod, Wales, United Kingdom",
         "bounds": list(SPIKE_BBOX),
         "buildTool": {
             "name": "TrailCharter desktop map package builder",
@@ -338,6 +493,14 @@ def build_package(pmtiles: str, output: Path, keep_work: bool) -> None:
                 intervalMetres=10,
                 source="OS Terrain 50",
             ),
+            "hikingRoutes": manifest_entry(
+                HIKING_ROUTES_PATH,
+                hiking_routes,
+                kind="geojson",
+                source="OpenStreetMap named hiking/walking route relations",
+                featureCount=route_count,
+                relationRoutes=["hiking", "foot", "walking"],
+            ),
             "glyphs": manifest_entry(
                 "glyphs/TrailCharterSans/0-255.pbf",
                 glyph,
@@ -365,6 +528,7 @@ def build_package(pmtiles: str, output: Path, keep_work: bool) -> None:
     print(f"Path: {output}")
     print(f"Bytes: {output.stat().st_size}")
     print(f"SHA-256: {sha256(output)}")
+    print(f"Total build time: {time.perf_counter() - started:.1f}s")
     print("This ZIP is a spike transport container, not a FINAL TrailCharter package format.")
 
     if not keep_work:
@@ -381,7 +545,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("build/maps/trailcharter-eryri-pass3-spike.zip"),
+        default=Path("build/maps/trailcharter-eryri-east-pass4-spike.zip"),
         help="Output ZIP path",
     )
     parser.add_argument(
