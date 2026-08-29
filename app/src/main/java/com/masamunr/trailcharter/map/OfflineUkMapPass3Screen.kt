@@ -5,18 +5,14 @@ import android.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -54,7 +50,9 @@ private const val P3_TERRAIN_FILE = "eryri-terrain.pmtiles"
 private const val P3_CONTOURS_FILE = "eryri-contours.pmtiles"
 
 private const val MIN_CAMERA_ZOOM = 9f
-private const val MAX_CAMERA_ZOOM = 17f
+// Pass 3 contains genuine Mapterhorn DEM through z16 only. Staying at the native DEM ceiling also
+// avoids MapLibre Native's known hillshade tile-edge seam when raster-dem data is overzoomed.
+private const val MAX_CAMERA_ZOOM = 16f
 private const val MAX_CAMERA_TILT = 60f
 
 /**
@@ -222,71 +220,9 @@ private fun OfflineEryriPass3Map(packages: Pass3OfflineMapPackages) {
                 onZoomSelected = { controlMode = Pass3CameraControl.ZOOM },
                 mapBackdropIsDark = false,
                 modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 10.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun androidx.compose.foundation.layout.BoxScope.Pass3CameraControlPanel(
-    map: MapLibreMap,
-    mode: Pass3CameraControl,
-    liveTilt: Float,
-    liveZoom: Float,
-    onModeChanged: (Pass3CameraControl) -> Unit,
-) {
-    val sliderValue = if (mode == Pass3CameraControl.TILT) liveTilt else liveZoom
-    val range = if (mode == Pass3CameraControl.TILT) 0f..MAX_CAMERA_TILT else MIN_CAMERA_ZOOM..MAX_CAMERA_ZOOM
-    val valueLabel = if (mode == Pass3CameraControl.TILT) {
-        "${liveTilt.roundToInt()}°"
-    } else {
-        "z${"%.1f".format(liveZoom)}"
-    }
-
-    Surface(
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .navigationBarsPadding()
-            .padding(12.dp)
-            .fillMaxWidth(0.94f),
-        shape = MaterialTheme.shapes.medium,
-        tonalElevation = 4.dp,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = mode == Pass3CameraControl.TILT,
-                    onClick = { onModeChanged(Pass3CameraControl.TILT) },
-                    label = { Text("Tilt") },
-                )
-                FilterChip(
-                    selected = mode == Pass3CameraControl.ZOOM,
-                    onClick = { onModeChanged(Pass3CameraControl.ZOOM) },
-                    label = { Text("Zoom") },
-                )
-                Text(
-                    valueLabel,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.labelLarge,
-                )
-                TextButton(onClick = { map.resetNorth() }) {
-                    Text("North")
-                }
-            }
-
-            Slider(
-                value = sliderValue,
-                onValueChange = { value -> applyPass3CameraValue(map, mode, value) },
-                valueRange = range,
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 10.dp, bottom = 54.dp),
             )
         }
     }
