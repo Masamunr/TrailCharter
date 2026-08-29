@@ -22,6 +22,7 @@ private const val BASEMAP_PATH = "eryri-basemap.pmtiles"
 private const val TERRAIN_PATH = "eryri-terrain.pmtiles"
 private const val CONTOURS_PATH = "eryri-contours.pmtiles"
 private const val GLYPH_PATH = "glyphs/TrailCharterSans/0-255.pbf"
+private const val LEGACY_EMBEDDED_PACKAGE_DIRECTORY = "map_spike_pass3"
 
 private const val MAX_ARCHIVE_BYTES = 320L * 1024L * 1024L
 private const val MAX_MANIFEST_BYTES = 1024L * 1024L
@@ -162,15 +163,22 @@ internal fun importEryriMapPackage(context: Context, source: Uri): InstalledOffl
 
         if (!staging.renameTo(installed)) {
             if (previousMoved) {
-                backup.renameTo(installed)
+                check(backup.renameTo(installed)) {
+                    "Could not restore the previous package after a failed replacement"
+                }
             }
             error("Could not atomically install the validated package")
         }
 
         if (previousMoved) backup.deleteRecursively()
-        return requireNotNull(loadPackageFromDirectory(installed)) {
+        val result = requireNotNull(loadPackageFromDirectory(installed)) {
             "Installed package could not be reopened"
         }
+
+        // Run #111 copied the heavyweight comparison package into this old app-private directory.
+        // Remove it only after the replacement package is fully installed and reopenable.
+        context.filesDir.resolve(LEGACY_EMBEDDED_PACKAGE_DIRECTORY).deleteRecursively()
+        return result
     } finally {
         temporaryArchive.delete()
         staging.deleteRecursively()
