@@ -32,9 +32,25 @@ For this embedded spike, AGREE to remove the known overzoom condition rather tha
 
 This keeps the quality-first principle intact: the zoom ceiling is being aligned with the real source resolution because of a renderer artefact, not reduced merely to make the APK smaller.
 
+## Run #111 CI evidence
+
+GitHub Actions Run #111 is the CI-verified versionCode 15 implementation of this refinement. It passed:
+
+- offline basemap, terrain, contour and glyph package generation;
+- unit tests, Android lint and debug APK assembly;
+- embedded map-package storage/integrity verification;
+- isolated `com.masamunr.trailcharter.mapspike` identity and versionCode 15 verification;
+- rejection of INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, ACCESS_COARSE_LOCATION and ACCESS_FINE_LOCATION permissions;
+- continuity-signing certificate verification;
+- Room schema and APK artifact upload.
+
+The generated APK is 191,421,549 bytes with SHA-256 `0bf318e47d61fa0d3f88a907acd0877a1da124b7196a8b8eebf693c50b50f763`.
+
+Run #110 had already passed tests, lint, assembly and map-package verification but was rejected by a stale CI assertion that still expected versionCode 14. That assertion was corrected to versionCode 15 without weakening any privacy or signing requirement. Run #111 then passed the full workflow.
+
 ## Next physical acceptance
 
-The next map-spike APK should be versionCode 15 and must:
+Run #111 is the next physical candidate and must:
 
 - install deterministically over Run #105;
 - place the slider/toggle comfortably in the lower-right quarter;
@@ -44,4 +60,4 @@ The next map-spike APK should be versionCode 15 and must:
 - remove or materially eliminate the pale hillshade tile-grid joins seen in the Run #105 screenshot;
 - remain network/location silent and pass the existing package, signing and privacy checks.
 
-PR #13 remains draft. Physical acceptance of this refinement is required before closing the final embedded-heavyweight Pass 3 comparison and moving heavyweight map-package preparation to the PC pipeline.
+PR #13 remains draft. Physical acceptance of Run #111 is required before closing the final embedded-heavyweight Pass 3 comparison and moving heavyweight map-package preparation to the PC pipeline.
