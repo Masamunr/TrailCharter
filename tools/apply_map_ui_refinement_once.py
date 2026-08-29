@@ -1,0 +1,157 @@
+from pathlib import Path
+
+screen = Path("app/src/main/java/com/masamunr/trailcharter/map/OfflineUkMapPass3Screen.kt")
+text = screen.read_text(encoding="utf-8")
+
+old = '''                    mapView.getMapAsync { map ->
+                        currentMap = map
+                        status = "Renderer ready; loading local style…"
+'''
+new = '''                    mapView.getMapAsync { map ->
+                        currentMap = map
+                        val density = viewContext.resources.displayMetrics.density
+                        map.uiSettings.apply {
+                            setCompassEnabled(true)
+                            setCompassGravity(android.view.Gravity.TOP or android.view.Gravity.END)
+                            setCompassMargins(
+                                0,
+                                (56f * density).roundToInt(),
+                                (14f * density).roundToInt(),
+                                0,
+                            )
+                            setCompassFadeFacingNorth(false)
+                        }
+                        status = "Renderer ready; loading local style…"
+'''
+if old not in text:
+    raise SystemExit("Map compass insertion point not found")
+text = text.replace(old, new, 1)
+
+old = '''        Surface(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(12.dp),
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 4.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Text("TrailCharter offline UK map spike", style = MaterialTheme.typography.titleSmall)
+                Text(status, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Eryri • z15 vectors • z16 summit relief • OS 10 m contours",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Text(
+                    "Map © OpenStreetMap contributors / Protomaps • relief © Mapterhorn • contours © Ordnance Survey",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+'''
+new = '''        Surface(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .statusBarsPadding()
+                .fillMaxWidth(0.68f)
+                .padding(start = 12.dp, top = 10.dp),
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 2.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text("Eryri offline topo", style = MaterialTheme.typography.titleSmall)
+                Text(status, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "z15 vectors • z16 relief • OS 10 m contours",
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                Text(
+                    "OSM / Protomaps • Mapterhorn • Ordnance Survey",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+'''
+if old not in text:
+    raise SystemExit("Map information panel block not found")
+text = text.replace(old, new, 1)
+
+old = '''        currentMap?.let { map ->
+            Pass3CameraControlPanel(
+                map = map,
+                mode = controlMode,
+                liveTilt = liveTilt,
+                liveZoom = liveZoom,
+                onModeChanged = { controlMode = it },
+            )
+        }
+'''
+new = '''        currentMap?.let { map ->
+            val tiltSelected = controlMode == Pass3CameraControl.TILT
+            MapSpikeVerticalCameraControls(
+                tiltSelected = tiltSelected,
+                value = if (tiltSelected) liveTilt else liveZoom,
+                valueRange = if (tiltSelected) 0f..MAX_CAMERA_TILT else MIN_CAMERA_ZOOM..MAX_CAMERA_ZOOM,
+                onValueChange = { value -> applyPass3CameraValue(map, controlMode, value) },
+                onTiltSelected = { controlMode = Pass3CameraControl.TILT },
+                onZoomSelected = { controlMode = Pass3CameraControl.ZOOM },
+                mapBackdropIsDark = false,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 10.dp),
+            )
+        }
+'''
+if old not in text:
+    raise SystemExit("Map camera control call not found")
+text = text.replace(old, new, 1)
+screen.write_text(text, encoding="utf-8")
+
+gradle = Path("app/build.gradle.kts")
+text = gradle.read_text(encoding="utf-8")
+text = text.replace("pass 3 is versionCode 13.", "pass 3 UI refinement is versionCode 14.", 1)
+if "output.versionCode.set(13)" not in text:
+    raise SystemExit("Spike versionCode 13 not found")
+text = text.replace("output.versionCode.set(13)", "output.versionCode.set(14)", 1)
+gradle.write_text(text, encoding="utf-8")
+
+workflow = Path(".github/workflows/android-ci.yml")
+text = workflow.read_text(encoding="utf-8")
+expected = "package: name='com.masamunr.trailcharter.mapspike' versionCode='13'"
+if expected not in text:
+    raise SystemExit("CI spike versionCode 13 assertion not found")
+text = text.replace(expected, "package: name='com.masamunr.trailcharter.mapspike' versionCode='14'", 1)
+workflow.write_text(text, encoding="utf-8")
+
+doc = Path("docs/architecture/MAP_CARTOGRAPHY_PASS_3.md")
+text = doc.read_text(encoding="utf-8")
+marker = "## Acceptance for this pass\n"
+section = '''## AGREE: Pass 3 interface refinement
+
+Physical testing confirmed that the continuous camera control behaves as intended. Refine its presentation before closing the embedded comparison:
+
+- move the camera slider to the right side of the map and orient it vertically;
+- remove the slider panel/background so the control floats directly over the cartography;
+- use a slim track, large circular thumb and discrete reference dots inspired by the approved visual reference;
+- place one compact two-state **Tilt / Zoom** toggle directly below the vertical slider;
+- do not add a separate North button to this control group; retain MapLibre's native compass at the top-right;
+- explicitly inset the compass below the Android status area and keep the top-right free from spike/status wording;
+- move/compact the spike information panel to the top-left and perform a general spacing/alignment sweep;
+- make control contrast map-aware: the current light topo style uses dark slider/toggle controls, while a future dark map/theme must switch them to a light palette. Resolve this from the actual map/theme backdrop rather than assuming the phone system theme always matches the map.
+
+The contrast requirement is structural rather than cosmetic: map controls must remain immediately legible over both light and dark cartography without adding a large opaque control panel.
+
+'''
+if section not in text:
+    if marker not in text:
+        raise SystemExit("Pass 3 acceptance marker not found")
+    text = text.replace(marker, section + marker, 1)
+doc.write_text(text, encoding="utf-8")
