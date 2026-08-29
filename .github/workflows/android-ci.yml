@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'app/**'
+      - 'tools/maps/**'
       - 'gradle/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
@@ -16,6 +17,7 @@ on:
   pull_request:
     paths:
       - 'app/**'
+      - 'tools/maps/**'
       - 'gradle/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
@@ -59,7 +61,7 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Prepare offline UK map spike assets
+      - name: Build standalone Eryri offline map package
         if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
         run: |
           set -euo pipefail
@@ -68,25 +70,10 @@ jobs:
           PMTILES_ARCHIVE="go-pmtiles_${PMTILES_VERSION}_Linux_x86_64.tar.gz"
           PMTILES_URL="https://github.com/protomaps/go-pmtiles/releases/download/v${PMTILES_VERSION}/${PMTILES_ARCHIVE}"
           PMTILES_SHA256="3ed7dbf4ec2e6dfe5e25b6f70d1ffc932729f93c86db353bf514dd71010a312f"
-
-          SPIKE_BBOX="-4.22,52.97,-3.95,53.18"
-          TERRAIN_HIGH_BBOX="-4.15,53.035,-4.015,53.12"
-          TERRAIN_Z16_BBOX="-4.105,53.055,-4.045,53.09"
-
-          ASSET_DIR="app/src/debug/assets/map_spike"
-          GLYPH_DIR="$ASSET_DIR/glyphs/TrailCharterSans"
           TOOL_DIR="$RUNNER_TEMP/pmtiles-cli"
-          TERRAIN_LOW="$RUNNER_TEMP/eryri-terrain-z0-z12.pmtiles"
-          TERRAIN_HIGH="$RUNNER_TEMP/eryri-terrain-z13-z15-core.pmtiles"
-          TERRAIN_Z16="$RUNNER_TEMP/eryri-terrain-z16-summit.pmtiles"
-          OS_DOWNLOADS_JSON="$RUNNER_TEMP/os-terrain50-downloads.json"
-          OS_VECTOR_ZIP="$RUNNER_TEMP/os-terrain50-vector.zip"
-          OS_VECTOR_DIR="$RUNNER_TEMP/os-terrain50-vector"
-          OS_CLIPPED_MBTILES="$RUNNER_TEMP/eryri-contours.mbtiles"
+          PACKAGE_PATH="$RUNNER_TEMP/trailcharter-eryri-pass3-spike.zip"
 
-          rm -rf "$ASSET_DIR"
-          mkdir -p "$TOOL_DIR" "$ASSET_DIR" "$GLYPH_DIR" "$OS_VECTOR_DIR"
-
+          mkdir -p "$TOOL_DIR"
           curl --fail --location --retry 3 --silent --show-error \
             "$PMTILES_URL" -o "$TOOL_DIR/$PMTILES_ARCHIVE"
           echo "$PMTILES_SHA256  $TOOL_DIR/$PMTILES_ARCHIVE" | sha256sum --check --strict
@@ -94,203 +81,62 @@ jobs:
           PMTILES_BIN=$(find "$TOOL_DIR" -maxdepth 2 -type f -name pmtiles -print -quit)
           test -n "$PMTILES_BIN"
           chmod +x "$PMTILES_BIN"
-          "$PMTILES_BIN" --help >/dev/null
-          "$PMTILES_BIN" extract --help | grep -q -- '--minzoom'
 
-          # Stable OSM-derived Protomaps v4 mirror. Native vector detail ends at z15; do not
-          # pretend a higher style maxzoom creates new path/road geometry.
-          "$PMTILES_BIN" extract \
-            "https://data.source.coop/protomaps/openstreetmap/v4.pmtiles" \
-            "$ASSET_DIR/eryri-basemap.pmtiles" \
-            --bbox="$SPIKE_BBOX" \
-            --maxzoom=15
+          python3 -m py_compile tools/maps/build_eryri_pass3_package.py
+          python3 tools/maps/build_eryri_pass3_package.py \
+            --pmtiles "$PMTILES_BIN" \
+            --output "$PACKAGE_PATH"
+          test -s "$PACKAGE_PATH"
+          echo "TRAILCHARTER_MAP_PACKAGE_PATH=$PACKAGE_PATH" >> "$GITHUB_ENV"
 
-          # Mapterhorn: full Eryri through z12, the accepted central area through z15, then one
-          # tighter summit/walking area at native z16 for the final embedded comparison pass.
-          "$PMTILES_BIN" extract \
-            "https://download.mapterhorn.com/planet.pmtiles" \
-            "$TERRAIN_LOW" \
-            --bbox="$SPIKE_BBOX" \
-            --maxzoom=12
-
-          "$PMTILES_BIN" extract \
-            "https://download.mapterhorn.com/6-31-20.pmtiles" \
-            "$TERRAIN_HIGH" \
-            --bbox="$TERRAIN_HIGH_BBOX" \
-            --minzoom=13 \
-            --maxzoom=15
-
-          "$PMTILES_BIN" extract \
-            "https://download.mapterhorn.com/6-31-20.pmtiles" \
-            "$TERRAIN_Z16" \
-            --bbox="$TERRAIN_Z16_BBOX" \
-            --minzoom=16 \
-            --maxzoom=16
-
-          "$PMTILES_BIN" merge \
-            "$TERRAIN_LOW" \
-            "$TERRAIN_HIGH" \
-            "$TERRAIN_Z16" \
-            "$ASSET_DIR/eryri-terrain.pmtiles"
-
-          # OS Terrain 50 is OpenData. Pull the current Great Britain vector-tile distribution,
-          # then copy only the z9-z14 MBTiles cells intersecting the Eryri spike bounds. This
-          # keeps the authoritative 10 m contour geometry without converting the national archive.
-          curl --fail --location --retry 3 --silent --show-error \
-            "https://api.os.uk/downloads/v1/products/Terrain50/downloads" \
-            -o "$OS_DOWNLOADS_JSON"
-
-          OS_VECTOR_URL=$(OS_DOWNLOADS_JSON="$OS_DOWNLOADS_JSON" python3 - <<'PY'
+      - name: Verify standalone offline map package
+        if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
+        run: |
+          set -euo pipefail
+          test -s "$TRAILCHARTER_MAP_PACKAGE_PATH"
+          MAP_PACKAGE_PATH="$TRAILCHARTER_MAP_PACKAGE_PATH" python3 - <<'PY'
+          import hashlib
           import json
           import os
+          import zipfile
 
-          with open(os.environ["OS_DOWNLOADS_JSON"], encoding="utf-8") as handle:
-              data = json.load(handle)
+          package = os.environ["MAP_PACKAGE_PATH"]
+          expected_paths = {
+              "manifest.json",
+              "eryri-basemap.pmtiles",
+              "eryri-terrain.pmtiles",
+              "eryri-contours.pmtiles",
+              "glyphs/TrailCharterSans/0-255.pbf",
+          }
 
-          records = []
-          def visit(value):
-              if isinstance(value, dict):
-                  if value.get("url"):
-                      records.append(value)
-                  for child in value.values():
-                      visit(child)
-              elif isinstance(value, list):
-                  for child in value:
-                      visit(child)
-          visit(data)
+          with zipfile.ZipFile(package) as archive:
+              actual_paths = {info.filename for info in archive.infolist() if not info.is_dir()}
+              if actual_paths != expected_paths:
+                  raise SystemExit(f"Unexpected package members: {sorted(actual_paths ^ expected_paths)}")
 
-          def text(record, key):
-              return str(record.get(key, "")).strip().lower()
+              manifest = json.loads(archive.read("manifest.json"))
+              if manifest.get("schemaVersion") != 1:
+                  raise SystemExit("Unexpected map-package schema")
+              if manifest.get("packageId") != "uk-wales-eryri-pass3-spike":
+                  raise SystemExit("Unexpected map-package ID")
+              if manifest.get("runtimeNetworkRequired") is not False:
+                  raise SystemExit("Map package unexpectedly requires runtime networking")
 
-          matches = []
-          for record in records:
-              combined = " ".join(str(record.get(key, "")) for key in ("area", "format", "fileName", "name", "url")).lower()
-              area = text(record, "area")
-              if area in {"gb", "great britain", "national"} and ("vector" in combined and "tile" in combined):
-                  matches.append(record)
+              for layer_name, layer in manifest["layers"].items():
+                  path = layer["path"]
+                  payload = archive.read(path)
+                  actual_hash = hashlib.sha256(payload).hexdigest()
+                  if len(payload) != layer["bytes"]:
+                      raise SystemExit(f"Size mismatch for {path}")
+                  if actual_hash != layer["sha256"]:
+                      raise SystemExit(f"SHA-256 mismatch for {path}")
+                  print(f"{layer_name}: {path}, {len(payload)} bytes, {actual_hash}")
 
-          if not matches:
-              for record in records:
-                  combined = " ".join(str(record.get(key, "")) for key in ("format", "fileName", "name", "url")).lower()
-                  if "mbtiles" in combined or ("vector" in combined and "tile" in combined):
-                      matches.append(record)
-
-          if not matches:
-              raise SystemExit("Could not locate the OS Terrain 50 vector-tile download in the OpenData API response")
-
-          print(matches[0]["url"])
+          package_bytes = os.path.getsize(package)
+          if package_bytes > 260 * 1024 * 1024:
+              raise SystemExit(f"Map package exceeded 260 MiB spike ceiling: {package_bytes}")
+          print(f"Standalone map package: {package_bytes} bytes")
           PY
-          )
-          test -n "$OS_VECTOR_URL"
-          echo "OS Terrain 50 vector-tile distribution selected."
-
-          curl --fail --location --retry 3 --silent --show-error \
-            "$OS_VECTOR_URL" -o "$OS_VECTOR_ZIP"
-          unzip -q "$OS_VECTOR_ZIP" -d "$OS_VECTOR_DIR"
-          OS_MBTILES=$(find "$OS_VECTOR_DIR" -type f -iname '*.mbtiles' -print -quit)
-          test -n "$OS_MBTILES"
-
-          SOURCE_MBTILES="$OS_MBTILES" DEST_MBTILES="$OS_CLIPPED_MBTILES" python3 - <<'PY'
-          import math
-          import os
-          import sqlite3
-
-          west, south, east, north = -4.22, 52.97, -3.95, 53.18
-          source = os.environ["SOURCE_MBTILES"]
-          destination = os.environ["DEST_MBTILES"]
-
-          def x_for_lon(lon, zoom):
-              n = 1 << zoom
-              return max(0, min(n - 1, int(math.floor((lon + 180.0) / 360.0 * n))))
-
-          def y_for_lat(lat, zoom):
-              n = 1 << zoom
-              lat_rad = math.radians(max(-85.05112878, min(85.05112878, lat)))
-              y = (1.0 - math.asinh(math.tan(lat_rad)) / math.pi) / 2.0 * n
-              return max(0, min(n - 1, int(math.floor(y))))
-
-          if os.path.exists(destination):
-              os.remove(destination)
-
-          dst = sqlite3.connect(destination)
-          dst.execute("CREATE TABLE metadata (name TEXT, value TEXT)")
-          dst.execute("CREATE TABLE tiles (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB)")
-          dst.execute("CREATE UNIQUE INDEX tile_index ON tiles (zoom_level, tile_column, tile_row)")
-          dst.execute("ATTACH DATABASE ? AS src", (source,))
-
-          metadata = dict(dst.execute("SELECT name, value FROM src.metadata").fetchall())
-          metadata["bounds"] = f"{west},{south},{east},{north}"
-          metadata["minzoom"] = "9"
-          metadata["maxzoom"] = "14"
-          dst.executemany("INSERT INTO metadata(name, value) VALUES (?, ?)", sorted(metadata.items()))
-
-          copied = 0
-          for zoom in range(9, 15):
-              n = 1 << zoom
-              x_min = x_for_lon(west, zoom)
-              x_max = x_for_lon(east, zoom)
-              y_xyz_min = y_for_lat(north, zoom)
-              y_xyz_max = y_for_lat(south, zoom)
-              tms_min = n - 1 - y_xyz_max
-              tms_max = n - 1 - y_xyz_min
-              before = dst.total_changes
-              dst.execute(
-                  """
-                  INSERT OR REPLACE INTO tiles(zoom_level, tile_column, tile_row, tile_data)
-                  SELECT zoom_level, tile_column, tile_row, tile_data
-                  FROM src.tiles
-                  WHERE zoom_level = ?
-                    AND tile_column BETWEEN ? AND ?
-                    AND tile_row BETWEEN ? AND ?
-                  """,
-                  (zoom, x_min, x_max, tms_min, tms_max),
-              )
-              added = dst.total_changes - before
-              copied += added
-              print(f"OS contours z{zoom}: copied {added} tiles")
-
-          dst.commit()
-          dst.execute("DETACH DATABASE src")
-          dst.close()
-          if copied <= 0:
-              raise SystemExit("OS Terrain 50 Eryri clip contains no tiles")
-          print(f"OS contour tiles copied: {copied}")
-          PY
-
-          "$PMTILES_BIN" convert \
-            "$OS_CLIPPED_MBTILES" \
-            "$ASSET_DIR/eryri-contours.pmtiles"
-
-          # Only numeric contour labels are rendered, so Basic Latin glyphs are sufficient. Pin
-          # the open glyph PBF to an immutable OpenMapTiles commit rather than a mutable demo URL.
-          curl --fail --location --retry 3 --silent --show-error \
-            "https://raw.githubusercontent.com/openmaptiles/fonts/025ff2b2f84cc0fdf11f7b1d74b3a784595fe7a4/Open%20Sans%20Regular/0-255.pbf" \
-            -o "$GLYPH_DIR/0-255.pbf"
-          test -s "$GLYPH_DIR/0-255.pbf"
-
-          echo "Offline map pass 3 assets:"
-          find "$ASSET_DIR" -type f -maxdepth 4 -print0 | xargs -0 ls -lh
-          du -h "$ASSET_DIR"/*.pmtiles
-          "$PMTILES_BIN" show "$ASSET_DIR/eryri-basemap.pmtiles"
-          "$PMTILES_BIN" show "$ASSET_DIR/eryri-terrain.pmtiles"
-          "$PMTILES_BIN" show "$ASSET_DIR/eryri-contours.pmtiles"
-
-          # These are emergency spike bounds, not production package targets. Pass 3 is explicitly
-          # allowed to be larger than run 79 so size does not decide the visual experiment first.
-          TERRAIN_BYTES=$(stat -c%s "$ASSET_DIR/eryri-terrain.pmtiles")
-          CONTOUR_BYTES=$(stat -c%s "$ASSET_DIR/eryri-contours.pmtiles")
-          MAX_TERRAIN_BYTES=$((140 * 1024 * 1024))
-          MAX_CONTOUR_BYTES=$((80 * 1024 * 1024))
-          if (( TERRAIN_BYTES > MAX_TERRAIN_BYTES )); then
-            echo "Pass 3 terrain unexpectedly exceeded the 140 MiB safety ceiling: $TERRAIN_BYTES bytes" >&2
-            exit 1
-          fi
-          if (( CONTOUR_BYTES > MAX_CONTOUR_BYTES )); then
-            echo "Pass 3 contours unexpectedly exceeded the 80 MiB safety ceiling: $CONTOUR_BYTES bytes" >&2
-            exit 1
-          fi
-          echo "Pass 3 terrain: $TERRAIN_BYTES bytes"
-          echo "Pass 3 contours: $CONTOUR_BYTES bytes"
 
       - name: Prepare continuity debug signing
         env:
@@ -325,9 +171,10 @@ jobs:
       - name: Unit tests, lint and debug build
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace --no-daemon
 
-      - name: Verify embedded offline map packaging
+      - name: Verify map data is not embedded in spike APK
         if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
         run: |
+          set -euo pipefail
           APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
           test -n "$APK_PATH"
           APK_PATH="$APK_PATH" python3 - <<'PY'
@@ -335,31 +182,16 @@ jobs:
           import zipfile
 
           apk = os.environ["APK_PATH"]
-          expected = {
-              "assets/map_spike/eryri-basemap.pmtiles",
-              "assets/map_spike/eryri-terrain.pmtiles",
-              "assets/map_spike/eryri-contours.pmtiles",
-              "assets/map_spike/glyphs/TrailCharterSans/0-255.pbf",
-          }
           with zipfile.ZipFile(apk) as archive:
-              for name in expected:
-                  info = archive.getinfo(name)
-                  if info.compress_type != zipfile.ZIP_STORED:
-                      raise SystemExit(
-                          f"{name} is deflated in the APK; AssetManager.openFd() requires a stored asset"
-                      )
-                  if info.file_size <= 0:
-                      raise SystemExit(f"{name} is empty")
-                  print(f"{name}: stored, {info.file_size} bytes")
-          PY
+              embedded = [name for name in archive.namelist() if name.startswith("assets/map_spike/")]
+              if embedded:
+                  raise SystemExit(f"Regional map data is still embedded in the APK: {embedded[:5]}")
 
-          APK_BYTES=$(stat -c%s "$APK_PATH")
-          MAX_APK_BYTES=$((260 * 1024 * 1024))
-          if (( APK_BYTES > MAX_APK_BYTES )); then
-            echo "Pass 3 APK exceeded the temporary 260 MiB embedded-spike safety ceiling: $APK_BYTES bytes" >&2
-            exit 1
-          fi
-          echo "Pass 3 APK: $APK_BYTES bytes"
+          apk_bytes = os.path.getsize(apk)
+          if apk_bytes > 120 * 1024 * 1024:
+              raise SystemExit(f"Package-split APK exceeded 120 MiB spike ceiling: {apk_bytes}")
+          print(f"Package-split APK: {apk_bytes} bytes; no embedded map_spike assets")
+          PY
 
       - name: Verify spike install identity and privacy baseline
         run: |
@@ -368,7 +200,7 @@ jobs:
 
           BADGING=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK_PATH")
           printf '%s\n' "$BADGING" | head -n 3
-          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='15'" <<< "$BADGING"
+          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='16'" <<< "$BADGING"
 
           PERMISSIONS=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$APK_PATH")
           printf '%s\n' "$PERMISSIONS"
@@ -379,6 +211,9 @@ jobs:
             android.permission.ACCESS_WIFI_STATE
             android.permission.ACCESS_COARSE_LOCATION
             android.permission.ACCESS_FINE_LOCATION
+            android.permission.READ_EXTERNAL_STORAGE
+            android.permission.WRITE_EXTERNAL_STORAGE
+            android.permission.MANAGE_EXTERNAL_STORAGE
           )
 
           for permission in "${FORBIDDEN_PERMISSIONS[@]}"; do
@@ -387,7 +222,7 @@ jobs:
               exit 1
             fi
           done
-          echo "Map spike identity/version and network/location-silent permission baseline verified."
+          echo "Map spike identity/version and network/location/storage-silent permission baseline verified."
 
       - name: Verify continuity signing certificate
         env:
@@ -420,6 +255,15 @@ jobs:
         with:
           name: trailcharter-debug-run-${{ github.run_number }}
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload standalone Eryri map package
+        if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
+        uses: actions/upload-artifact@v6
+        with:
+          name: trailcharter-eryri-package-run-${{ github.run_number }}
+          path: ${{ runner.temp }}/trailcharter-eryri-pass3-spike.zip
           if-no-files-found: error
           retention-days: 14
 
