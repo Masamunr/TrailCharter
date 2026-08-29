@@ -51,6 +51,13 @@ private const val MIN_CAMERA_ZOOM = 9f
 private const val MAX_CAMERA_ZOOM = 18f
 private const val MAX_CAMERA_TILT = 60f
 
+internal const val PASS3_TRACK_FILTER_JSON =
+    """["all",["==",["get","kind"],"path"],["==",["get","kind_detail"],"track"]]"""
+internal const val PASS3_PATH_FILTER_JSON =
+    """["all",["==",["get","kind"],"path"],["!",["match",["get","kind_detail"],["track","pier"],true,false]]]"""
+internal const val PASS3_NAMED_WALKING_PATH_FILTER_JSON =
+    """["all",["==",["get","kind"],"path"],["!",["match",["get","kind_detail"],["sidewalk","crossing","corridor","pier"],true,false]],["has","name"]]"""
+
 /**
  * Cartography pass 3/4 renderer using an explicitly imported regional package.
  *
@@ -58,7 +65,7 @@ private const val MAX_CAMERA_TILT = 60f
  * chosen through the system picker, validates it, and renders only app-private local files.
  */
 @Composable
-internal fun OfflineUkMapPass3Screen() {
+internal fun OfflineUkMapPass3Screen(onMapReady: (MapLibreMap?) -> Unit = {}) {
     val context = LocalContext.current
     val applicationContext = context.applicationContext
     val scope = rememberCoroutineScope()
@@ -106,7 +113,7 @@ internal fun OfflineUkMapPass3Screen() {
             },
         )
     } else {
-        OfflineEryriPass3Map(packages = installed)
+        OfflineEryriPass3Map(packages = installed, onMapReady = onMapReady)
     }
 }
 
@@ -151,7 +158,10 @@ private fun Pass3MapImportScreen(
 }
 
 @Composable
-private fun OfflineEryriPass3Map(packages: InstalledOfflineMapPackage) {
+private fun OfflineEryriPass3Map(
+    packages: InstalledOfflineMapPackage,
+    onMapReady: (MapLibreMap?) -> Unit,
+) {
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     var currentMapView by remember { mutableStateOf<MapView?>(null) }
     var currentMap by remember { mutableStateOf<MapLibreMap?>(null) }
@@ -177,6 +187,10 @@ private fun OfflineEryriPass3Map(packages: InstalledOfflineMapPackage) {
         }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
+    }
+
+    DisposableEffect(packages) {
+        onDispose { onMapReady(null) }
     }
 
     DisposableEffect(currentMap) {
@@ -232,6 +246,7 @@ private fun OfflineEryriPass3Map(packages: InstalledOfflineMapPackage) {
                                 .zoom(11.4)
                                 .build()
                             status = "Expanded Eryri package loaded"
+                            onMapReady(map)
                         }
                     }
                 }
@@ -559,7 +574,7 @@ private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String
               "source": "basemap",
               "source-layer": "roads",
               "minzoom": 11,
-              "filter": ["==", ["get", "kind_detail"], "track"],
+              "filter": $PASS3_TRACK_FILTER_JSON,
               "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
                 "line-color": "#8E765F",
@@ -574,7 +589,7 @@ private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String
               "source": "basemap",
               "source-layer": "roads",
               "minzoom": 11,
-              "filter": ["match", ["get", "kind_detail"], ["path", "cycleway", "bridleway", "steps", "sidewalk", "crossing"], true, false],
+              "filter": $PASS3_PATH_FILTER_JSON,
               "layout": { "line-cap": "round", "line-join": "round" },
               "paint": {
                 "line-color": "#7F5F49",
@@ -612,11 +627,7 @@ private fun pass3OfflineEryriStyle(packages: InstalledOfflineMapPackage): String
               "source": "basemap",
               "source-layer": "roads",
               "minzoom": 14,
-              "filter": [
-                "all",
-                ["match", ["get", "kind_detail"], ["track", "path", "bridleway", "steps"], true, false],
-                ["has", "name"]
-              ],
+              "filter": $PASS3_NAMED_WALKING_PATH_FILTER_JSON,
               "layout": {
                 "symbol-placement": "line",
                 "symbol-spacing": 600,

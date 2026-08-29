@@ -25,6 +25,11 @@
 - 2026-08-28: Completed a pre-publication repository/history audit; no committed credentials, keys, signing files or other secret material were identified. `.gitignore` was hardened for common environment/signing/private-key files.
 - 2026-08-28: Renamed the repository from `Masamunr/altrove` to **`Masamunr/TrailCharter`** and changed visibility to **public**, matching the open-source direction and allowing standard GitHub-hosted Actions without the private-repository minutes constraint.
 
+### Map and routing spike
+- 2026-08-29: Recorded Run #160 physical evidence: Watkin Path relation labelling works, while legitimate Protomaps `kind=path` sections were hidden by an incomplete `kind_detail` style filter.
+- 2026-08-29: Corrected versionCode 22 path rendering at schema level and replaced the routing overlay's import-sensitive timed view search with an explicit map-ready handoff, preserving both Yr Wyddfa and Moel Siabod WALK scenarios.
+- 2026-08-29: Recorded the first Moel Siabod apparent off-network result as unresolved safety evidence; BRouter remains EXPLORE pending retest against the corrected path rendering.
+
 ### Android foundation
 - 2026-08-28: Agreed Android namespace and application ID: `com.masamunr.trailcharter`.
 - 2026-08-28: Agreed SDK baseline: `minSdk = 28`, `targetSdk = 36`, `compileSdk = 36`.

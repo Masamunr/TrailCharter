@@ -57,7 +57,7 @@ private data class RoutingBenchmark(
     val heapDeltaBytes: Long,
 )
 
-private data class RoutingSpikeScenario(
+internal data class RoutingSpikeScenario(
     val buttonLabel: String,
     val calculatingMessage: String,
     val successMessage: String,
@@ -86,6 +86,8 @@ private val moelSiabodScenario = RoutingSpikeScenario(
         RouteWaypoint(GeoPoint(latitude = 53.07319, longitude = -3.93407), "Moel Siabod"),
     ),
 )
+
+internal val routingSpikeScenarios = listOf(yrWyddfaScenario, moelSiabodScenario)
 
 /**
  * Deliberately small technical UI for BRouter physical proof.
@@ -197,52 +199,31 @@ internal fun BRouterRoutingSpikeOverlay(
                     Text(if (importing) "Importing…" else "Choose routing package")
                 }
             } else {
-                RoutingScenarioButton(
-                    scenario = yrWyddfaScenario,
-                    calculating = calculating,
-                    importing = importing,
-                    onRun = { scenario ->
-                        calculating = true
-                        benchmark = null
-                        message = scenario.calculatingMessage
-                        scope.launch {
-                            runCatching {
-                                calculateBenchmark(installed, scenario)
-                            }.onSuccess { (route, metrics) ->
-                                renderRoute(map, route.geometry.points, routeOpacity)
-                                benchmark = metrics
-                                calculating = false
-                                message = scenario.successMessage
-                            }.onFailure { error ->
-                                calculating = false
-                                message = "Routing failed: ${error.message.orEmpty()}"
+                routingSpikeScenarios.forEach { scenario ->
+                    RoutingScenarioButton(
+                        scenario = scenario,
+                        calculating = calculating,
+                        importing = importing,
+                        onRun = { selectedScenario ->
+                            calculating = true
+                            benchmark = null
+                            message = selectedScenario.calculatingMessage
+                            scope.launch {
+                                runCatching {
+                                    calculateBenchmark(installed, selectedScenario)
+                                }.onSuccess { (route, metrics) ->
+                                    renderRoute(map, route.geometry.points, routeOpacity)
+                                    benchmark = metrics
+                                    calculating = false
+                                    message = selectedScenario.successMessage
+                                }.onFailure { error ->
+                                    calculating = false
+                                    message = "Routing failed: ${error.message.orEmpty()}"
+                                }
                             }
-                        }
-                    },
-                )
-                RoutingScenarioButton(
-                    scenario = moelSiabodScenario,
-                    calculating = calculating,
-                    importing = importing,
-                    onRun = { scenario ->
-                        calculating = true
-                        benchmark = null
-                        message = scenario.calculatingMessage
-                        scope.launch {
-                            runCatching {
-                                calculateBenchmark(installed, scenario)
-                            }.onSuccess { (route, metrics) ->
-                                renderRoute(map, route.geometry.points, routeOpacity)
-                                benchmark = metrics
-                                calculating = false
-                                message = scenario.successMessage
-                            }.onFailure { error ->
-                                calculating = false
-                                message = "Routing failed: ${error.message.orEmpty()}"
-                            }
-                        }
-                    },
-                )
+                        },
+                    )
+                }
                 Button(
                     enabled = !calculating && !importing,
                     onClick = { importLauncher.launch(arrayOf("*/*")) },

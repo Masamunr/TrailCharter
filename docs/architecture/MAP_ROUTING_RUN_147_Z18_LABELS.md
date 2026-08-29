@@ -110,14 +110,33 @@ CI confirms:
 - tests, lint, APK assembly, no-embedded-map/routing checks, version/privacy gates and continuity signing all pass;
 - the spike retains z18 inspection zoom, the z16.25 hillshade ceiling, adjustable planned-route opacity and the hard guided-route safety rule.
 
-This is **CI/build evidence only**. Relation-label readability, Watkin Path rendering, expanded-area cartographic quality, import behaviour and the new Moel Siabod route remain pending physical acceptance on-device.
+This was **CI/build evidence only** at the time of Run #160. The first physical pass is recorded below.
+
+## Run #160 physical findings and diagnosis
+
+Physical testing confirmed that the relation-derived **Watkin Path** label is present. It also found several brown dashed walking paths apparently ending and restarting in unrelated fragments.
+
+The broken dashed geometry is a **basemap path-style filtering defect**, not malformed hiking-relation geometry, relation member ordering, package clipping or relation-layer ordering:
+
+- the hiking-relation GeoJSON is consumed only by the `hiking-route-relation-labels` symbol layer; it does not draw a line and therefore cannot create or erase the brown dashed basemap paths;
+- the relation payload deliberately retains OSM way members as `MultiLineString` geometry so MapLibre can place source-derived names along their real geometry; member order can affect label-placement opportunities but not the separately rendered basemap path line;
+- the `tracks` / `paths` style used a narrow `kind_detail` allow-list, while Protomaps classifies the complete walking family under `kind=path` and uses values such as `footway`, `pedestrian`, `track`, `path`, `bridleway` and `steps` in `kind_detail`;
+- valid adjacent `footway` / `pedestrian` sections were therefore omitted when their detail value changed, which matches the physical appearance of paths breaking at seemingly random way boundaries;
+- the defect occurs within the installed package bounds and no relation line is layered above the path network, ruling out package-edge clipping and relation style occlusion.
+
+The versionCode 22 correction selects the complete Protomaps `kind=path` family, keeps tracks visually distinct, and excludes only deliberately non-walking-map linework such as piers from the ordinary path layer. The same schema-level classification is applied to named walking-way labels. This is an APK style correction: **the accepted Eryri East Pass 4 map package does not need rebuilding or re-importing**.
+
+The same physical session initially showed no routing controls after the Eryri East map import. Closing and reopening the app then exposed both **Yr Wyddfa** and **Moel Siabod** WALK tests. The restart evidence identifies a separate lifecycle defect: `BRouterRoutingSpikeHost` searched the Android view tree for at most eight seconds, so a large first-time map import could finish after the host had permanently stopped looking for its MapView. VersionCode 22 removes the timed view-tree search; the renderer now explicitly hands the ready MapLibre map to the routing host, so both fixed scenarios appear as soon as the imported map style is ready. A unit contract preserves both scenario definitions and the existing route-opacity control remains unchanged.
+
+The first Moel Siabod WALK result also appeared not to follow an established route for part of its length. This is recorded as **unresolved routing-safety evidence** rather than accepted BRouter behaviour. Because the same build was omitting legitimate mapped path sections, that observation cannot yet distinguish a genuine off-network BRouter result from a renderer omission. Retest versionCode 22 with route opacity reduced and z17-z18 inspection. If the calculated line still leaves the now-continuous mapped network, it remains a routing-safety failure requiring engine/profile investigation. BRouter remains **EXPLORE** and no route-specific shaping point or hard-coded Moel Siabod/Watkin exception has been added.
+
+VersionCode 22 preserves the existing privacy boundary: no `INTERNET`, location or broad storage permissions, offline app-private package use, unchanged BRouter package/profile data, and a draft PR.
 
 ## Next physical acceptance focus
 
-1. confirm larger walking-route labels are readable at ordinary planning zooms without excessive collision or repetition;
-2. confirm **Watkin Path** is reliably rendered through route-relation support rather than hard-coding;
-3. confirm the expanded Capel Curig / Moel Siabod area imports and renders at the same expected cartographic quality;
-4. note any material import/load/interaction impact from the larger map package;
-5. run the new **Plas y Brenin → Moel Siabod** WALK test so BRouter is assessed outside the original Yr Wyddfa corridor;
-6. use route opacity and z17-z18 inspection to check whether that generated route remains on the established mapped path network;
-7. retain the routing-safety requirement that guided/magnetic routes must remain on known routable network geometry.
+1. install versionCode 22 over Run #160 without replacing either offline package;
+2. confirm the previously broken brown dashed paths now remain continuous across `footway` / `path` / `pedestrian` tagging boundaries;
+3. confirm Watkin Path and other relation-derived labels remain readable without duplicate clutter;
+4. confirm both Yr Wyddfa and Moel Siabod WALK buttons appear immediately after a first-time map import, without restarting the app;
+5. rerun **Plas y Brenin → Moel Siabod**, reduce route opacity to approximately 25–35%, and inspect the questionable section at z17-z18;
+6. classify any remaining route/path divergence against the now-complete rendered network while retaining the rule that guided/magnetic routes must not silently invent an off-network shortcut.
