@@ -7,6 +7,7 @@ on:
     paths:
       - 'app/**'
       - 'tools/maps/**'
+      - 'tools/routing/**'
       - 'gradle/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
@@ -18,6 +19,7 @@ on:
     paths:
       - 'app/**'
       - 'tools/maps/**'
+      - 'tools/routing/**'
       - 'gradle/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
@@ -138,6 +140,68 @@ jobs:
           print(f"Standalone map package: {package_bytes} bytes")
           PY
 
+      - name: Build standalone Eryri BRouter WALK package
+        if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
+        run: |
+          set -euo pipefail
+          ROUTING_PACKAGE_PATH="$RUNNER_TEMP/trailcharter-eryri-brouter-walk-spike.zip"
+          python3 -m py_compile tools/routing/build_eryri_brouter_package.py
+          python3 tools/routing/build_eryri_brouter_package.py --output "$ROUTING_PACKAGE_PATH"
+          test -s "$ROUTING_PACKAGE_PATH"
+          echo "TRAILCHARTER_ROUTING_PACKAGE_PATH=$ROUTING_PACKAGE_PATH" >> "$GITHUB_ENV"
+
+      - name: Verify standalone BRouter routing package
+        if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
+        run: |
+          set -euo pipefail
+          test -s "$TRAILCHARTER_ROUTING_PACKAGE_PATH"
+          ROUTING_PACKAGE_PATH="$TRAILCHARTER_ROUTING_PACKAGE_PATH" python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import zipfile
+
+          package = os.environ["ROUTING_PACKAGE_PATH"]
+          expected_paths = {
+              "manifest.json",
+              "segments4/W5_N50.rd5",
+              "profiles2/hiking-mountain.brf",
+              "profiles2/lookups.dat",
+          }
+          with zipfile.ZipFile(package) as archive:
+              actual_paths = {info.filename for info in archive.infolist() if not info.is_dir()}
+              if actual_paths != expected_paths:
+                  raise SystemExit(f"Unexpected routing package members: {sorted(actual_paths ^ expected_paths)}")
+
+              manifest = json.loads(archive.read("manifest.json"))
+              if manifest.get("schemaVersion") != 1:
+                  raise SystemExit("Unexpected routing-package schema")
+              if manifest.get("packageId") != "uk-wales-eryri-brouter-walk-spike":
+                  raise SystemExit("Unexpected routing-package ID")
+              if manifest.get("travelMode") != "WALK":
+                  raise SystemExit("Routing package is not WALK")
+              if manifest.get("runtimeNetworkRequired") is not False:
+                  raise SystemExit("Routing package unexpectedly requires runtime networking")
+              engine = manifest.get("routingEngine", {})
+              if engine.get("name") != "BRouter" or engine.get("version") != "1.7.10":
+                  raise SystemExit(f"Unexpected routing engine metadata: {engine}")
+
+              for payload_name, payload in manifest["payloads"].items():
+                  path = payload["path"]
+                  data = archive.read(path)
+                  actual_hash = hashlib.sha256(data).hexdigest()
+                  if len(data) != payload["bytes"]:
+                      raise SystemExit(f"Size mismatch for routing payload {path}")
+                  if actual_hash != payload["sha256"]:
+                      raise SystemExit(f"SHA-256 mismatch for routing payload {path}")
+                  print(f"{payload_name}: {path}, {len(data)} bytes, {actual_hash}")
+
+          package_bytes = os.path.getsize(package)
+          if package_bytes > 190 * 1024 * 1024:
+              raise SystemExit(f"Routing package exceeded 190 MiB spike ceiling: {package_bytes}")
+          print(f"Standalone BRouter routing package: {package_bytes} bytes")
+          PY
+
       - name: Prepare continuity debug signing
         env:
           KEYSTORE_B64: ${{ secrets.TRAILCHARTER_CI_KEYSTORE_B64 }}
@@ -171,7 +235,7 @@ jobs:
       - name: Unit tests, lint and debug build
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace --no-daemon
 
-      - name: Verify map data is not embedded in spike APK
+      - name: Verify map and routing data are not embedded in spike APK
         if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
         run: |
           set -euo pipefail
@@ -183,14 +247,18 @@ jobs:
 
           apk = os.environ["APK_PATH"]
           with zipfile.ZipFile(apk) as archive:
-              embedded = [name for name in archive.namelist() if name.startswith("assets/map_spike/")]
-              if embedded:
-                  raise SystemExit(f"Regional map data is still embedded in the APK: {embedded[:5]}")
+              names = archive.namelist()
+              embedded_maps = [name for name in names if name.startswith("assets/map_spike/")]
+              embedded_routes = [name for name in names if name.endswith(".rd5") or "hiking-mountain.brf" in name]
+              if embedded_maps:
+                  raise SystemExit(f"Regional map data is still embedded in the APK: {embedded_maps[:5]}")
+              if embedded_routes:
+                  raise SystemExit(f"Routing data/profile is embedded in the APK: {embedded_routes[:5]}")
 
           apk_bytes = os.path.getsize(apk)
           if apk_bytes > 120 * 1024 * 1024:
               raise SystemExit(f"Package-split APK exceeded 120 MiB spike ceiling: {apk_bytes}")
-          print(f"Package-split APK: {apk_bytes} bytes; no embedded map_spike assets")
+          print(f"Routing-spike APK: {apk_bytes} bytes; no regional map/routing payload embedded")
           PY
 
       - name: Verify spike install identity and privacy baseline
@@ -200,7 +268,7 @@ jobs:
 
           BADGING=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK_PATH")
           printf '%s\n' "$BADGING" | head -n 3
-          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='16'" <<< "$BADGING"
+          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='17'" <<< "$BADGING"
 
           PERMISSIONS=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$APK_PATH")
           printf '%s\n' "$PERMISSIONS"
@@ -222,7 +290,7 @@ jobs:
               exit 1
             fi
           done
-          echo "Map spike identity/version and network/location/storage-silent permission baseline verified."
+          echo "Map/routing spike identity/version and network/location/storage-silent permission baseline verified."
 
       - name: Verify continuity signing certificate
         env:
@@ -264,6 +332,15 @@ jobs:
         with:
           name: trailcharter-eryri-package-run-${{ github.run_number }}
           path: ${{ runner.temp }}/trailcharter-eryri-pass3-spike.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload standalone Eryri BRouter routing package
+        if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
+        uses: actions/upload-artifact@v6
+        with:
+          name: trailcharter-eryri-brouter-routing-run-${{ github.run_number }}
+          path: ${{ runner.temp }}/trailcharter-eryri-brouter-walk-spike.zip
           if-no-files-found: error
           retention-days: 14
 
