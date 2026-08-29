@@ -287,3 +287,7 @@ private fun installedFiles(directory: File) = InstalledOfflineMapPackage(
     hikingRoutes = directory.resolve(HIKING_ROUTES_PATH),
     glyphDirectory = directory.resolve("glyphs"),
 )
+
+private fun packageRoot(context: Context): File = context.filesDir.resolve("offline_maps")
+
+private fun installedPackageDirectory(context: Context): File = packageRoot(context).resolve(PACKAGE_ID)
