@@ -72,6 +72,28 @@ Room schema is unchanged. No production renderer/routing engine is selected.
 8. Aerial imagery remains technically straightforward at renderer level but provider licensing, attribution, caching and offline rights are the real constraints.
 9. Live traffic can potentially use regional public/open feeds without transmitting continuous device location, but coverage and provider terms require a separate investigation.
 
+## BRouter physical evidence
+
+Run #136 / versionCode 17 established the first physical routing result:
+
+- the independently imported BRouter WALK package loaded successfully on-device;
+- the fixed Pen-y-Pass → Pyg Track via → Yr Wyddfa test completed offline;
+- reported route: **5.96 km, +764 m / -129 m, 114 min**;
+- this is a **PASS for basic in-process offline BRouter calculation**;
+- visual route-quality acceptance remains open because the original solid route overlay obscured the mapped path beneath it;
+- a separate Android document-picker MIME filtering issue was identified and corrected in Run #137 by allowing all files to be visible while retaining TrailCharter manifest/hash validation.
+
+### AGREE: route inspectability refinement
+
+For the next physical BRouter pass:
+
+- keep the calculated route visible over the accepted topo map;
+- add **adjustable route opacity from 10% to 100%**;
+- default to approximately **55% opacity** so the route remains clear while the underlying mapped path can still be inspected;
+- update opacity live without recalculating the route;
+- do not treat this spike control as final production route-planning UI;
+- use the adjustable overlay to judge whether BRouter follows the established mapped walking route and to expose any snapping or geometry errors.
+
 ## Next evidence required: BRouter-first slice
 
 The package-split gate has now passed physically. Proceed with BRouter first, without changing the production app or selecting an engine.
