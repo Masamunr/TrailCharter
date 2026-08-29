@@ -20,6 +20,16 @@ class MapRoutingSpikeContractsTest {
     }
 
     @Test
+    fun agreedPathHierarchyUsesOneVioletFamilyWithoutRemovingOrdinaryPaths() {
+        assertEquals("#8B79B5", PASS4_ORDINARY_PATH_COLOR)
+        assertEquals("#6A3FD2", PASS4_ESTABLISHED_ROUTE_COLOR)
+        assertEquals("#6C608B", PASS4_ORDINARY_PATH_LABEL_COLOR)
+        assertEquals("#5730A5", PASS4_ESTABLISHED_ROUTE_LABEL_COLOR)
+        assertEquals("hiking-route-relation-lines", PASS4_ESTABLISHED_ROUTE_LAYER_ID)
+        assertTrue(PASS4_ORDINARY_PATH_COLOR != PASS4_ESTABLISHED_ROUTE_COLOR)
+    }
+
+    @Test
     fun bothPhysicalRoutingScenariosRemainExposed() {
         assertEquals(
             listOf("Run Yr Wyddfa WALK test", "Run Moel Siabod WALK test"),
