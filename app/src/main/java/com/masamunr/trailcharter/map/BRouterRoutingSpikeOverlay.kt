@@ -102,6 +102,7 @@ internal fun BRouterRoutingSpikeOverlay(
                     }
                 }.onSuccess { installed ->
                     routingPackage = installed
+                    benchmark = null
                     importing = false
                     message = "BRouter 1.7.10 WALK package ready"
                 }.onFailure { error ->
@@ -161,19 +162,13 @@ internal fun BRouterRoutingSpikeOverlay(
             if (installed == null) {
                 Button(
                     enabled = !importing,
-                    onClick = {
-                        // Some Android document providers label ZIP files inconsistently and hide
-                        // them when OpenDocument is restricted to ZIP-specific MIME types. Show
-                        // all documents here and rely on TrailCharter's manifest/hash validation
-                        // to reject anything that is not the expected routing package.
-                        importLauncher.launch(arrayOf("*/*"))
-                    },
+                    onClick = { importLauncher.launch(arrayOf("*/*")) },
                 ) {
                     Text(if (importing) "Importing…" else "Choose routing package")
                 }
             } else {
                 Button(
-                    enabled = !calculating,
+                    enabled = !calculating && !importing,
                     onClick = {
                         calculating = true
                         benchmark = null
@@ -194,6 +189,12 @@ internal fun BRouterRoutingSpikeOverlay(
                     },
                 ) {
                     Text(if (calculating) "Calculating…" else "Run 3-point WALK test")
+                }
+                Button(
+                    enabled = !calculating && !importing,
+                    onClick = { importLauncher.launch(arrayOf("*/*")) },
+                ) {
+                    Text(if (importing) "Importing…" else "Replace routing package")
                 }
             }
         }
