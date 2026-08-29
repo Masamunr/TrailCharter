@@ -62,7 +62,7 @@ After Pass 3 physical testing, AGREE to move heavyweight cartographic preparatio
 
 This sequencing prevents APK delivery constraints from prematurely deciding cartographic quality while retaining device performance and practical storage as real engineering constraints.
 
-## Run #93 CI evidence
+## Run #93 CI and physical evidence
 
 GitHub Actions run **#93** completed successfully for the Pass 3 implementation. CI produced and verified:
 
@@ -84,7 +84,9 @@ Measured Run #93 embedded assets and APK:
 | Local contour-label glyph PBF | 74,696 | 0.07 |
 | Final debug APK | 191,405,165 | 182.5 |
 
-The final APK passed unit tests, lint, debug assembly, stored/uncompressed embedded-asset verification, map-spike identity/version verification, forbidden-permission verification, continuity-signing verification and artifact upload. CI success is **not** physical acceptance; Run #93 now requires comparison against physically accepted Run #79.
+The final APK passed unit tests, lint, debug assembly, stored/uncompressed embedded-asset verification, map-spike identity/version verification, forbidden-permission verification, continuity-signing verification and artifact upload.
+
+Physical testing of Run #93 confirmed the substantive Pass 3 behaviour is accepted: the map and continuous camera control work as intended, including the higher-detail terrain/contour presentation. Remaining feedback was limited to presentation of the camera controls, compass placement and a general interface-formatting sweep. Those items are recorded below as the agreed interface refinement and do not reopen the accepted cartographic behaviour.
 
 ## AGREE: Pass 3 interface refinement
 
@@ -101,9 +103,28 @@ Physical testing confirmed that the continuous camera control behaves as intende
 
 The contrast requirement is structural rather than cosmetic: map controls must remain immediately legible over both light and dark cartography without adding a large opaque control panel.
 
+## Run #105 UI-refinement CI evidence
+
+The interface refinement is implemented at map-spike **versionCode 14**. Commit `7e6bcf1e9db5835d3c962722f01241dbbaecae7b` removes the incompatible pointer-consumption import that caused Run #104 to fail compilation, without changing the agreed map packages or cartography.
+
+GitHub Actions run **#105** completed successfully against that commit. It passed:
+
+- offline Pass 3 asset preparation;
+- unit tests, lint and debug assembly;
+- embedded offline map-package verification;
+- isolated map-spike identity/version and forbidden-permission verification;
+- continuity-signing certificate verification;
+- APK artifact upload.
+
+Run #105 produced `trailcharter-debug-run-105`; the extracted `app-debug.apk` is 191,437,933 bytes. Its SHA-256 is `c9e22e763cdbcd2ef86c1c352d3681bc08b7f626250f49c46642d14642b09387`.
+
+Run #105 is **CI-verified but not yet physically accepted**. Physical testing should focus on the agreed UI refinement: right-side vertical slider, floating/no-background presentation, Tilt/Zoom toggle placement, compass access/insets, general formatting and control contrast/readability.
+
 ## Acceptance for this pass
 
 - Run #79 remains the accepted physical baseline and is not regressed.
+- Run #93 is physically accepted for substantive Pass 3 map/cartography and continuous camera-control behaviour.
+- Run #105 must physically preserve that accepted behaviour while validating the UI refinement.
 - The map spike still installs beside normal TrailCharter and updates deterministically.
 - The slider makes tilt and zoom materially easier to control than the previous preset-button stack.
 - Switching Tilt / Zoom does not jump or reset the other camera property.
