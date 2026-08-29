@@ -66,7 +66,7 @@ android {
     buildTypes {
         debug {
             // This draft branch is a technical spike. Keep it installable beside the real
-            // TrailCharter alpha so physical renderer testing cannot touch Adventure data.
+            // TrailCharter alpha so physical renderer/routing testing cannot touch Adventure data.
             applicationIdSuffix = ".mapspike"
             versionNameSuffix = "-mapspike"
             if (ciSigningConfigured) signingConfig = signingConfigs.getByName("continuityDebug")
@@ -86,11 +86,11 @@ android {
 }
 
 // Keep the normal TrailCharter application identity/version at versionCode 11. Only the isolated
-// debug .mapspike APK advances for physical spike installs; the package-import split is version 16.
+// debug .mapspike APK advances for physical spike installs; the first BRouter integration is 17.
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.outputs.forEach { output ->
-            output.versionCode.set(16)
+            output.versionCode.set(17)
         }
     }
 }
@@ -117,6 +117,11 @@ dependencies {
         exclude(group = "org.maplibre.gl", module = "android-sdk")
     }
     implementation(libs.maplibre.android.opengl)
+
+    // Technical routing spike only. Gradle resolves this module from the public BRouter repository
+    // configured in settings.gradle.kts and pins it to the immutable v1.7.10 source tag.
+    implementation("org.btools:brouter-core:v1.7.10")
+
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
