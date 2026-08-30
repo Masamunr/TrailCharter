@@ -86,11 +86,11 @@ android {
 }
 
 // Keep the normal TrailCharter application identity/version at versionCode 11. Only the isolated
-// debug .mapspike APK advances for physical spike installs; path visual hierarchy test is version 23.
+// debug .mapspike APK advances for physical spike installs; path hierarchy visibility tuning is version 24.
 androidComponents {
     onVariants(selector().withBuildType("debug")) { variant ->
         variant.outputs.forEach { output ->
-            output.versionCode.set(23)
+            output.versionCode.set(24)
         }
     }
 }
