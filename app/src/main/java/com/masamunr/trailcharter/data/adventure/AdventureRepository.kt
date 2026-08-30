@@ -15,6 +15,9 @@ class AdventureRepository(
     fun observeItineraryItems(adventureId: Long): Flow<List<ItineraryItemEntity>> =
         dao.observeItineraryItems(adventureId)
 
+    fun observeRoutePlanningStages(): Flow<List<RoutePlanningStageRow>> =
+        dao.observeRoutePlanningStages()
+
     fun observePlanningSession(adventureId: Long): Flow<AdventurePlanningSnapshot?> =
         combine(
             dao.observeAdventure(adventureId),
@@ -97,6 +100,19 @@ class AdventureRepository(
 
     suspend fun deleteAdventure(adventureId: Long) {
         dao.deleteAdventure(adventureId)
+    }
+
+    suspend fun createRoutePlanningStage(): Long {
+        val now = System.currentTimeMillis()
+        return dao.createAdventureWithStage(
+            adventure = AdventureEntity(
+                title = "Map persistence test",
+                summary = "Physical Stage-route persistence check",
+                createdAtEpochMillis = now,
+                updatedAtEpochMillis = now,
+            ),
+            stageTitle = "Stage 1",
+        )
     }
 
     suspend fun addItineraryItem(

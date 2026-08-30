@@ -38,6 +38,23 @@ interface AdventureDao {
     @Query("SELECT * FROM itinerary_items WHERE adventureId = :adventureId ORDER BY position ASC, id ASC")
     fun observeItineraryItems(adventureId: Long): Flow<List<ItineraryItemEntity>>
 
+    @Query(
+        """
+        SELECT
+            s.id AS stageId,
+            s.adventureId AS adventureId,
+            a.title AS adventureTitle,
+            s.title AS stageTitle,
+            s.position AS stagePosition,
+            CASE WHEN r.stageId IS NULL THEN 0 ELSE 1 END AS hasRoute
+        FROM stages s
+        INNER JOIN adventures a ON a.id = s.adventureId
+        LEFT JOIN stage_routes r ON r.stageId = s.id
+        ORDER BY a.updatedAtEpochMillis DESC, s.position ASC, s.id ASC
+        """,
+    )
+    fun observeRoutePlanningStages(): Flow<List<RoutePlanningStageRow>>
+
     @Insert
     suspend fun insertAdventure(adventure: AdventureEntity): Long
 
@@ -52,6 +69,21 @@ interface AdventureDao {
 
     @Insert
     suspend fun insertStage(stage: StageEntity): Long
+
+    @Transaction
+    suspend fun createAdventureWithStage(
+        adventure: AdventureEntity,
+        stageTitle: String,
+    ): Long {
+        val adventureId = insertAdventure(adventure)
+        return insertStage(
+            StageEntity(
+                adventureId = adventureId,
+                title = stageTitle,
+                position = 0,
+            ),
+        )
+    }
 
     @Update
     suspend fun updateStage(stage: StageEntity)

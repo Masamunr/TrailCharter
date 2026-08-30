@@ -65,6 +65,10 @@ android {
 
     buildTypes {
         debug {
+            // This draft branch is a technical spike. Keep it installable beside the real
+            // TrailCharter alpha so physical renderer/routing testing cannot touch Adventure data.
+            applicationIdSuffix = ".mapspike"
+            versionNameSuffix = "-mapspike"
             if (ciSigningConfigured) signingConfig = signingConfigs.getByName("continuityDebug")
         }
         release {
@@ -79,6 +83,16 @@ android {
     }
     buildFeatures { compose = true }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+}
+
+// Keep the normal TrailCharter application identity/version at versionCode 11. Only the isolated
+// debug .mapspike APK advances for physical spike installs; Stage-route persistence is version 25.
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        variant.outputs.forEach { output ->
+            output.versionCode.set(25)
+        }
+    }
 }
 
 tasks.named("preBuild").configure { dependsOn(prepareLauncherIcon) }
@@ -99,6 +113,20 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.maplibre.compose) {
+        exclude(group = "org.maplibre.gl", module = "android-sdk")
+    }
+    implementation(libs.maplibre.android.opengl)
+
+    // Technical routing spike only. BRouter's public core API exposes classes from modules that it
+    // declares internally as Gradle implementation dependencies, so make all five source modules
+    // visible to TrailCharter while keeping the whole set pinned to the same immutable v1.7.10 tag.
+    implementation("org.btools:brouter-core:v1.7.10")
+    implementation("org.btools:brouter-mapaccess:v1.7.10")
+    implementation("org.btools:brouter-util:v1.7.10")
+    implementation("org.btools:brouter-expressions:v1.7.10")
+    implementation("org.btools:brouter-codec:v1.7.10")
+
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
