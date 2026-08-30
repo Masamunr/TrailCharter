@@ -14,21 +14,20 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.masamunr.trailcharter.geo.GeoPoint
-import com.masamunr.trailcharter.routing.BRouterRoutingEngine
 import com.masamunr.trailcharter.routing.RoutePlanningMode
 import com.masamunr.trailcharter.routing.RouteWaypoint
+import com.masamunr.trailcharter.routing.RoutingEngineBoundary
 import com.masamunr.trailcharter.routing.RoutingRequest
 import com.masamunr.trailcharter.routing.TravelMode
-import com.masamunr.trailcharter.routing.loadInstalledEryriRoutingPackage
 import kotlinx.coroutines.launch
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
@@ -58,6 +57,7 @@ internal data class StageRoutePlanDraft(
     val ascentMetres: Double? = null,
     val descentMetres: Double? = null,
     val durationSeconds: Long? = null,
+    val routeGeometry: List<GeoPoint> = emptyList(),
 )
 
 internal const val STAGE_PLANNER_POINT_SOURCE_ID = "trailcharter-stage-plan-points"
@@ -69,11 +69,10 @@ internal const val STAGE_PLANNER_ROUTE_LAYER_ID = "trailcharter-stage-plan-route
 internal fun StageRoutePlanningSpikeOverlay(
     map: MapLibreMap,
     initialDraft: StageRoutePlanDraft,
+    routingEngine: RoutingEngineBoundary?,
     onDone: (StageRoutePlanDraft) -> Unit,
     onCancel: () -> Unit,
 ) {
-    val context = LocalContext.current.applicationContext
-    val routingPackage = remember(context) { loadInstalledEryriRoutingPackage(context) }
     val scope = rememberCoroutineScope()
 
     var draft by remember(initialDraft) { mutableStateOf(initialDraft) }
@@ -86,29 +85,7 @@ internal fun StageRoutePlanningSpikeOverlay(
     DisposableEffect(map, selectionMode, draft.snapToNetwork) {
         val listener = MapLibreMap.OnMapClickListener { latLng ->
             val point = GeoPoint(latitude = latLng.latitude, longitude = latLng.longitude)
-            draft = when (selectionMode) {
-                StagePointSelectionMode.START -> draft.copy(
-                    start = point,
-                    distanceMetres = null,
-                    ascentMetres = null,
-                    descentMetres = null,
-                    durationSeconds = null,
-                )
-                StagePointSelectionMode.FINISH -> draft.copy(
-                    finish = point,
-                    distanceMetres = null,
-                    ascentMetres = null,
-                    descentMetres = null,
-                    durationSeconds = null,
-                )
-                StagePointSelectionMode.WAYPOINT -> draft.copy(
-                    waypoints = draft.waypoints + point,
-                    distanceMetres = null,
-                    ascentMetres = null,
-                    descentMetres = null,
-                    durationSeconds = null,
-                )
-            }
+            draft = stageDraftAfterMapTap(draft, selectionMode, point)
             renderStagePlannerPoints(map, draft)
             clearStagePlannerRoute(map)
             message = when (selectionMode) {
@@ -121,6 +98,14 @@ internal fun StageRoutePlanningSpikeOverlay(
         map.addOnMapClickListener(listener)
         renderStagePlannerPoints(map, draft)
         onDispose { map.removeOnMapClickListener(listener) }
+    }
+
+    LaunchedEffect(map, draft.routeGeometry) {
+        if (draft.routeGeometry.size >= 2) {
+            renderStagePlannerRoute(map, draft.routeGeometry)
+        } else {
+            clearStagePlannerRoute(map)
+        }
     }
 
     Surface(
@@ -173,11 +158,7 @@ internal fun StageRoutePlanningSpikeOverlay(
                     onCheckedChange = { enabled ->
                         draft = draft.copy(
                             snapToNetwork = enabled,
-                            distanceMetres = null,
-                            ascentMetres = null,
-                            descentMetres = null,
-                            durationSeconds = null,
-                        )
+                        ).withoutCalculatedRoute()
                         clearStagePlannerRoute(map)
                         message = if (enabled) {
                             "Snapping enabled for guided routing"
@@ -193,11 +174,7 @@ internal fun StageRoutePlanningSpikeOverlay(
                     onClick = {
                         draft = draft.copy(
                             waypoints = draft.waypoints.dropLast(1),
-                            distanceMetres = null,
-                            ascentMetres = null,
-                            descentMetres = null,
-                            durationSeconds = null,
-                        )
+                        ).withoutCalculatedRoute()
                         renderStagePlannerPoints(map, draft)
                         clearStagePlannerRoute(map)
                         message = "Last waypoint removed"
@@ -207,13 +184,13 @@ internal fun StageRoutePlanningSpikeOverlay(
                 }
             }
 
-            val canCalculate = draft.start != null && draft.finish != null && draft.snapToNetwork && routingPackage != null
+            val canCalculate = draft.start != null && draft.finish != null && draft.snapToNetwork && routingEngine != null
             Button(
                 enabled = canCalculate && !calculating,
                 onClick = {
                     val start = draft.start ?: return@Button
                     val finish = draft.finish ?: return@Button
-                    val installed = routingPackage ?: return@Button
+                    val engine = routingEngine ?: return@Button
                     calculating = true
                     message = "Calculating guided WALK route…"
                     scope.launch {
@@ -225,7 +202,7 @@ internal fun StageRoutePlanningSpikeOverlay(
                                 }
                                 add(RouteWaypoint(finish, "Finish"))
                             }
-                            BRouterRoutingEngine(installed).calculateRoute(
+                            engine.calculateRoute(
                                 RoutingRequest(
                                     waypoints = routeWaypoints,
                                     travelMode = TravelMode.WALK,
@@ -239,6 +216,7 @@ internal fun StageRoutePlanningSpikeOverlay(
                                 ascentMetres = result.estimate.ascentMetres,
                                 descentMetres = result.estimate.descentMetres,
                                 durationSeconds = result.estimate.durationSeconds,
+                                routeGeometry = result.geometry.points,
                             )
                             message = "Guided WALK route calculated"
                             calculating = false
@@ -259,7 +237,7 @@ internal fun StageRoutePlanningSpikeOverlay(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else if (routingPackage == null) {
+            } else if (routingEngine == null) {
                 Text(
                     "BRouter routing data is not installed, so point selection can be tested but guided calculation is unavailable.",
                     style = MaterialTheme.typography.labelSmall,
@@ -273,7 +251,7 @@ internal fun StageRoutePlanningSpikeOverlay(
                         distance / 1000.0,
                         draft.ascentMetres ?: 0.0,
                         draft.descentMetres ?: 0.0,
-                        draft.durationSeconds?.let { "${(it + 30L) / 60L} min" } ?: "ETA n/a",
+                        draft.durationSeconds?.let(::formatRouteDuration) ?: "ETA n/a",
                     ),
                     style = MaterialTheme.typography.labelMedium,
                 )
@@ -293,6 +271,36 @@ internal fun StageRoutePlanningSpikeOverlay(
             }
         }
     }
+}
+
+internal fun stageDraftAfterMapTap(
+    draft: StageRoutePlanDraft,
+    selectionMode: StagePointSelectionMode,
+    exactPoint: GeoPoint,
+): StageRoutePlanDraft {
+    val updated = when (selectionMode) {
+        StagePointSelectionMode.START -> draft.copy(start = exactPoint)
+        StagePointSelectionMode.FINISH -> draft.copy(finish = exactPoint)
+        StagePointSelectionMode.WAYPOINT -> draft.copy(waypoints = draft.waypoints + exactPoint)
+    }
+    return updated.withoutCalculatedRoute()
+}
+
+internal fun StageRoutePlanDraft.withoutCalculatedRoute(): StageRoutePlanDraft = copy(
+    distanceMetres = null,
+    ascentMetres = null,
+    descentMetres = null,
+    durationSeconds = null,
+    routeGeometry = emptyList(),
+)
+
+internal fun formatRouteDuration(durationSeconds: Long): String {
+    require(durationSeconds >= 0L) { "Duration cannot be negative" }
+    val totalMinutes = (durationSeconds + 30L) / 60L
+    if (totalMinutes < 60L) return "$totalMinutes min"
+    val hours = totalMinutes / 60L
+    val minutes = totalMinutes % 60L
+    return if (minutes == 0L) "$hours hr" else "$hours hr $minutes min"
 }
 
 @Composable

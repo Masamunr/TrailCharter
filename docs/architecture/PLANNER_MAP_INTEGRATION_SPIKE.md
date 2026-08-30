@@ -84,6 +84,29 @@ The routing calculation is valid, but the current UI exposes longer estimates as
 
 This is a presentation-only refinement and should be folded into the next planner/map slice rather than creating a standalone physical build.
 
-## Next slice
+## Persisted Stage-route slice
 
-With the interaction accepted, the next slice may design and implement persisted Stage route data. The persistence model must remain routing-engine agnostic and preserve the agreed snap semantics. Prototype-specific BRouter assumptions must not be embedded into the Adventure database schema.
+The accepted interaction advances in map-spike versionCode 25 to Room schema 3. This is an additive migration from schema 2; the existing `adventures`, `stages` and `itinerary_items` tables are unchanged.
+
+Each Stage may own one current route through three new tables:
+
+- `stage_routes` stores generic planning/travel semantics, the snap preference, distance, ascent, descent, duration and timestamps;
+- `stage_route_control_points` stores exact user-selected Start, ordered Waypoints and Finish coordinates;
+- `stage_route_geometry_points` stores the ordered displayed route geometry.
+
+All route data is keyed to `stageId` and cascades when that Stage is deleted. Saving after editing or recalculation replaces the Stage's current control points and geometry in one Room transaction while retaining its original creation timestamp. There is no routing-engine name, profile, segment filename or BRouter-specific value in the schema. `MAGNETIC` / `DIRECT`, travel mode and snap preference are product-level semantics shared through the routing boundary.
+
+The map-planning overlay now receives the generic `RoutingEngineBoundary`; only the spike host constructs the current BRouter EXPLORE implementation. A selected coordinate remains the persisted source of truth. In particular, Snap OFF stores the exact full-precision tapped coordinate, disables guided calculation, and explains that manual/direct routing will serve deliberate off-network geometry in a future slice.
+
+The persisted route is observed from Room when its Stage is selected. Its points, metrics and full geometry can be reopened on the map, edited, recalculated and saved back to the same Stage. The Stage shell also exposes a focused create/select flow for physical persistence testing; it remains spike scaffolding and does not change the agreed map-first production home.
+
+Duration remains stored as seconds and is now presented as human-readable minutes/hours (`42 min`, `1 hr`, `1 hr 46 min`, `5 hr 12 min`).
+
+Migration and persistence evidence is deliberately layered:
+
+- an SQLite migration test constructs the exported v2 schema, inserts representative Adventure/Stage/itinerary data, applies the additive route tables and proves the old rows survive;
+- the v2 and v3 exported schemas are compared to prove all three previous entity definitions are unchanged;
+- focused JVM tests cover ordered waypoint round-trip, full coordinate precision with Snap OFF, geometry/metric round-trip, route replacement, deletion and duration formatting;
+- Room continues to export schema 3 for review and CI artifact retention.
+
+The map and BRouter package formats/data are unchanged. BRouter remains **EXPLORE**, the route-safety principles remain binding, PR #13 remains draft, and the APK retains the no-INTERNET/location/broad-storage permission boundary.
