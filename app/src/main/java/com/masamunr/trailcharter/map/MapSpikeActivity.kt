@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -94,7 +95,7 @@ class MapSpikeActivity : ComponentActivity() {
                     Box(modifier = Modifier.fillMaxSize()) {
                         OfflineUkMapPass3Screen(onMapReady = { routingMap = it })
                         routingMap?.let { map ->
-                            applyPass4PathVisualHierarchy(map)
+                            LaunchedEffect(map) { applyPass4PathVisualHierarchy(map) }
                             StageRoutePlanningSpikeOverlay(
                                 map = map,
                                 initialDraft = routeDraft,
