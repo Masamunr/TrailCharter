@@ -67,27 +67,21 @@ jobs:
         if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
         run: |
           set -euo pipefail
-
           PMTILES_VERSION=1.31.2
           PMTILES_ARCHIVE="go-pmtiles_${PMTILES_VERSION}_Linux_x86_64.tar.gz"
           PMTILES_URL="https://github.com/protomaps/go-pmtiles/releases/download/v${PMTILES_VERSION}/${PMTILES_ARCHIVE}"
           PMTILES_SHA256="3ed7dbf4ec2e6dfe5e25b6f70d1ffc932729f93c86db353bf514dd71010a312f"
           TOOL_DIR="$RUNNER_TEMP/pmtiles-cli"
           PACKAGE_PATH="$RUNNER_TEMP/trailcharter-eryri-east-pass4-spike.zip"
-
           mkdir -p "$TOOL_DIR"
-          curl --fail --location --retry 3 --silent --show-error \
-            "$PMTILES_URL" -o "$TOOL_DIR/$PMTILES_ARCHIVE"
+          curl --fail --location --retry 3 --silent --show-error "$PMTILES_URL" -o "$TOOL_DIR/$PMTILES_ARCHIVE"
           echo "$PMTILES_SHA256  $TOOL_DIR/$PMTILES_ARCHIVE" | sha256sum --check --strict
           tar -xzf "$TOOL_DIR/$PMTILES_ARCHIVE" -C "$TOOL_DIR"
           PMTILES_BIN=$(find "$TOOL_DIR" -maxdepth 2 -type f -name pmtiles -print -quit)
           test -n "$PMTILES_BIN"
           chmod +x "$PMTILES_BIN"
-
           python3 -m py_compile tools/maps/build_eryri_pass3_package.py
-          python3 tools/maps/build_eryri_pass3_package.py \
-            --pmtiles "$PMTILES_BIN" \
-            --output "$PACKAGE_PATH"
+          python3 tools/maps/build_eryri_pass3_package.py --pmtiles "$PMTILES_BIN" --output "$PACKAGE_PATH"
           test -s "$PACKAGE_PATH"
           echo "TRAILCHARTER_MAP_PACKAGE_PATH=$PACKAGE_PATH" >> "$GITHUB_ENV"
 
@@ -97,75 +91,37 @@ jobs:
           set -euo pipefail
           test -s "$TRAILCHARTER_MAP_PACKAGE_PATH"
           MAP_PACKAGE_PATH="$TRAILCHARTER_MAP_PACKAGE_PATH" python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          import zipfile
-
+          import hashlib, json, os, zipfile
           package = os.environ["MAP_PACKAGE_PATH"]
-          expected_paths = {
-              "manifest.json",
-              "eryri-basemap.pmtiles",
-              "eryri-terrain.pmtiles",
-              "eryri-contours.pmtiles",
-              "eryri-hiking-routes.geojson",
-              "glyphs/TrailCharterSans/0-255.pbf",
-          }
-
+          expected_paths = {"manifest.json","eryri-basemap.pmtiles","eryri-terrain.pmtiles","eryri-contours.pmtiles","eryri-hiking-routes.geojson","glyphs/TrailCharterSans/0-255.pbf"}
           with zipfile.ZipFile(package) as archive:
               actual_paths = {info.filename for info in archive.infolist() if not info.is_dir()}
               if actual_paths != expected_paths:
                   raise SystemExit(f"Unexpected package members: {sorted(actual_paths ^ expected_paths)}")
-
               manifest = json.loads(archive.read("manifest.json"))
-              if manifest.get("schemaVersion") != 2:
-                  raise SystemExit("Unexpected map-package schema")
-              if manifest.get("packageId") != "uk-wales-eryri-east-pass4-spike":
-                  raise SystemExit("Unexpected map-package ID")
-              if manifest.get("runtimeNetworkRequired") is not False:
-                  raise SystemExit("Map package unexpectedly requires runtime networking")
-
+              if manifest.get("schemaVersion") != 2 or manifest.get("packageId") != "uk-wales-eryri-east-pass4-spike" or manifest.get("runtimeNetworkRequired") is not False:
+                  raise SystemExit("Unexpected map-package manifest")
               bounds = manifest.get("bounds", [])
               if len(bounds) != 4 or bounds[2] < -3.88:
                   raise SystemExit(f"Map package does not include agreed eastward expansion: {bounds}")
-
               layers = manifest.get("layers", {})
               hiking_layer = layers.get("hikingRoutes", {})
-              if hiking_layer.get("path") != "eryri-hiking-routes.geojson":
-                  raise SystemExit("Hiking-route relation payload is missing from manifest")
-              if hiking_layer.get("kind") != "geojson":
-                  raise SystemExit("Hiking-route relation payload has unexpected kind")
-
-              for layer_name, layer in layers.items():
+              if hiking_layer.get("path") != "eryri-hiking-routes.geojson" or hiking_layer.get("kind") != "geojson":
+                  raise SystemExit("Hiking-route relation payload is invalid")
+              for layer in layers.values():
                   path = layer["path"]
                   payload = archive.read(path)
-                  actual_hash = hashlib.sha256(payload).hexdigest()
-                  if len(payload) != layer["bytes"]:
-                      raise SystemExit(f"Size mismatch for {path}")
-                  if actual_hash != layer["sha256"]:
-                      raise SystemExit(f"SHA-256 mismatch for {path}")
-                  print(f"{layer_name}: {path}, {len(payload)} bytes, {actual_hash}")
-
+                  if len(payload) != layer["bytes"] or hashlib.sha256(payload).hexdigest() != layer["sha256"]:
+                      raise SystemExit(f"Map payload verification failed: {path}")
               routes = json.loads(archive.read("eryri-hiking-routes.geojson"))
-              if routes.get("type") != "FeatureCollection":
-                  raise SystemExit("Hiking-route relation payload is not a GeoJSON FeatureCollection")
               features = routes.get("features", [])
-              if not features:
-                  raise SystemExit("Hiking-route relation payload contains no features")
               route_names = [str(feature.get("properties", {}).get("name", "")) for feature in features]
-              if not any("watkin" in name.casefold() for name in route_names):
-                  raise SystemExit(f"Watkin Path acceptance relation missing; names include: {route_names[:20]}")
-              declared_count = hiking_layer.get("featureCount")
-              if declared_count != len(features):
-                  raise SystemExit(
-                      f"Hiking-route feature count mismatch: manifest={declared_count}, actual={len(features)}"
-                  )
-              print(f"Hiking-route relation features: {len(features)}; Watkin acceptance case present")
-
-          package_bytes = os.path.getsize(package)
-          if package_bytes > 260 * 1024 * 1024:
-              raise SystemExit(f"Map package exceeded 260 MiB spike ceiling: {package_bytes}")
-          print(f"Standalone Eryri East map package: {package_bytes} bytes")
+              if not features or not any("watkin" in name.casefold() for name in route_names):
+                  raise SystemExit("Watkin Path acceptance relation missing")
+              if hiking_layer.get("featureCount") != len(features):
+                  raise SystemExit("Hiking-route feature count mismatch")
+          if os.path.getsize(package) > 260 * 1024 * 1024:
+              raise SystemExit("Map package exceeded 260 MiB spike ceiling")
           PY
 
       - name: Build standalone Eryri BRouter WALK package
@@ -184,55 +140,29 @@ jobs:
           set -euo pipefail
           test -s "$TRAILCHARTER_ROUTING_PACKAGE_PATH"
           ROUTING_PACKAGE_PATH="$TRAILCHARTER_ROUTING_PACKAGE_PATH" python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          import zipfile
-
+          import hashlib, json, os, zipfile
           package = os.environ["ROUTING_PACKAGE_PATH"]
-          expected_paths = {
-              "manifest.json",
-              "segments4/W5_N50.rd5",
-              "profiles2/hiking-mountain.brf",
-              "profiles2/lookups.dat",
-          }
+          expected_paths = {"manifest.json","segments4/W5_N50.rd5","profiles2/hiking-mountain.brf","profiles2/lookups.dat"}
           with zipfile.ZipFile(package) as archive:
               actual_paths = {info.filename for info in archive.infolist() if not info.is_dir()}
               if actual_paths != expected_paths:
                   raise SystemExit(f"Unexpected routing package members: {sorted(actual_paths ^ expected_paths)}")
-
               manifest = json.loads(archive.read("manifest.json"))
-              if manifest.get("schemaVersion") != 1:
-                  raise SystemExit("Unexpected routing-package schema")
-              if manifest.get("packageId") != "uk-wales-eryri-brouter-walk-spike":
-                  raise SystemExit("Unexpected routing-package ID")
-              if manifest.get("travelMode") != "WALK":
-                  raise SystemExit("Routing package is not WALK")
-              if manifest.get("runtimeNetworkRequired") is not False:
-                  raise SystemExit("Routing package unexpectedly requires runtime networking")
+              if manifest.get("schemaVersion") != 1 or manifest.get("packageId") != "uk-wales-eryri-brouter-walk-spike" or manifest.get("travelMode") != "WALK" or manifest.get("runtimeNetworkRequired") is not False:
+                  raise SystemExit("Unexpected routing-package manifest")
               engine = manifest.get("routingEngine", {})
               if engine.get("name") != "BRouter" or engine.get("version") != "1.7.10":
                   raise SystemExit(f"Unexpected routing engine metadata: {engine}")
               overrides = manifest.get("profileOverrides", {})
-              if overrides.get("correctMisplacedViaPoints") is not True:
-                  raise SystemExit("Misplaced-via correction is not enabled in routing package")
-              if overrides.get("correctMisplacedViaPointsDistance") != 400:
-                  raise SystemExit(f"Unexpected misplaced-via correction distance: {overrides}")
-
-              for payload_name, payload in manifest["payloads"].items():
+              if overrides.get("correctMisplacedViaPoints") is not True or overrides.get("correctMisplacedViaPointsDistance") != 400:
+                  raise SystemExit(f"Unexpected misplaced-via correction: {overrides}")
+              for payload in manifest["payloads"].values():
                   path = payload["path"]
                   data = archive.read(path)
-                  actual_hash = hashlib.sha256(data).hexdigest()
-                  if len(data) != payload["bytes"]:
-                      raise SystemExit(f"Size mismatch for routing payload {path}")
-                  if actual_hash != payload["sha256"]:
-                      raise SystemExit(f"SHA-256 mismatch for routing payload {path}")
-                  print(f"{payload_name}: {path}, {len(data)} bytes, {actual_hash}")
-
-          package_bytes = os.path.getsize(package)
-          if package_bytes > 190 * 1024 * 1024:
-              raise SystemExit(f"Routing package exceeded 190 MiB spike ceiling: {package_bytes}")
-          print(f"Standalone BRouter routing package: {package_bytes} bytes")
+                  if len(data) != payload["bytes"] or hashlib.sha256(data).hexdigest() != payload["sha256"]:
+                      raise SystemExit(f"Routing payload verification failed: {path}")
+          if os.path.getsize(package) > 190 * 1024 * 1024:
+              raise SystemExit("Routing package exceeded 190 MiB spike ceiling")
           PY
 
       - name: Prepare continuity debug signing
@@ -245,20 +175,13 @@ jobs:
               echo "Continuity signing secrets are required for authoritative main APKs." >&2
               exit 1
             fi
-            echo "Continuity signing secrets unavailable for this PR; using the standard disposable debug signer."
             echo "TRAILCHARTER_CONTINUITY_SIGNING=false" >> "$GITHUB_ENV"
             exit 0
           fi
-
           echo "::add-mask::$KEYSTORE_PASSWORD"
           KEYSTORE_PATH="$RUNNER_TEMP/trailcharter-ci-debug.p12"
           printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
-          keytool -list \
-            -keystore "$KEYSTORE_PATH" \
-            -storetype PKCS12 \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -alias trailcharter-ci-debug >/dev/null
-
+          keytool -list -keystore "$KEYSTORE_PATH" -storetype PKCS12 -storepass "$KEYSTORE_PASSWORD" -alias trailcharter-ci-debug >/dev/null
           echo "TRAILCHARTER_CI_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
           echo "TRAILCHARTER_CI_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           echo "TRAILCHARTER_CI_KEY_ALIAS=trailcharter-ci-debug" >> "$GITHUB_ENV"
@@ -275,73 +198,43 @@ jobs:
           APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
           test -n "$APK_PATH"
           APK_PATH="$APK_PATH" python3 - <<'PY'
-          import os
-          import zipfile
-
+          import os, zipfile
           apk = os.environ["APK_PATH"]
           with zipfile.ZipFile(apk) as archive:
               names = archive.namelist()
-              embedded_maps = [name for name in names if name.startswith("assets/map_spike/")]
-              embedded_routes = [name for name in names if name.endswith(".rd5") or "hiking-mountain.brf" in name]
-              if embedded_maps:
-                  raise SystemExit(f"Regional map data is still embedded in the APK: {embedded_maps[:5]}")
-              if embedded_routes:
-                  raise SystemExit(f"Routing data/profile is embedded in the APK: {embedded_routes[:5]}")
-
-          apk_bytes = os.path.getsize(apk)
-          if apk_bytes > 120 * 1024 * 1024:
-              raise SystemExit(f"Package-split APK exceeded 120 MiB spike ceiling: {apk_bytes}")
-          print(f"Routing-spike APK: {apk_bytes} bytes; no regional map/routing payload embedded")
+              if [name for name in names if name.startswith("assets/map_spike/")]:
+                  raise SystemExit("Regional map data is embedded in APK")
+              if [name for name in names if name.endswith(".rd5") or "hiking-mountain.brf" in name]:
+                  raise SystemExit("Routing data is embedded in APK")
+          if os.path.getsize(apk) > 120 * 1024 * 1024:
+              raise SystemExit("Spike APK exceeded 120 MiB ceiling")
           PY
 
       - name: Verify spike install identity and privacy baseline
         run: |
           APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
           test -n "$APK_PATH"
-
           BADGING=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK_PATH")
           printf '%s\n' "$BADGING" | head -n 3
-          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='24'" <<< "$BADGING"
-
+          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='25'" <<< "$BADGING"
           PERMISSIONS=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$APK_PATH")
-          printf '%s\n' "$PERMISSIONS"
-
-          FORBIDDEN_PERMISSIONS=(
-            android.permission.INTERNET
-            android.permission.ACCESS_NETWORK_STATE
-            android.permission.ACCESS_WIFI_STATE
-            android.permission.ACCESS_COARSE_LOCATION
-            android.permission.ACCESS_FINE_LOCATION
-            android.permission.READ_EXTERNAL_STORAGE
-            android.permission.WRITE_EXTERNAL_STORAGE
-            android.permission.MANAGE_EXTERNAL_STORAGE
-          )
-
+          FORBIDDEN_PERMISSIONS=(android.permission.INTERNET android.permission.ACCESS_NETWORK_STATE android.permission.ACCESS_WIFI_STATE android.permission.ACCESS_COARSE_LOCATION android.permission.ACCESS_FINE_LOCATION android.permission.READ_EXTERNAL_STORAGE android.permission.WRITE_EXTERNAL_STORAGE android.permission.MANAGE_EXTERNAL_STORAGE)
           for permission in "${FORBIDDEN_PERMISSIONS[@]}"; do
             if grep -q "$permission" <<< "$PERMISSIONS"; then
               echo "Unexpected permission in final merged APK: $permission" >&2
               exit 1
             fi
           done
-          echo "Map/routing spike identity/version and network/location/storage-silent permission baseline verified."
+          echo "Map/routing spike identity/version and privacy baseline verified."
 
       - name: Verify continuity signing certificate
         env:
           EXPECTED_CERT_SHA256: b0c753f9b46c1ca25a0ae546e4aefe818a95dc83f95be74bccd3cf17e947d26c
         run: |
-          if [[ "$TRAILCHARTER_CONTINUITY_SIGNING" != "true" ]]; then
-            echo "Continuity signing verification skipped for an untrusted/external PR build."
-            exit 0
-          fi
-
+          if [[ "$TRAILCHARTER_CONTINUITY_SIGNING" != "true" ]]; then exit 0; fi
           APK_PATH=$(find app/build/outputs/apk/debug -name '*.apk' -print -quit)
-          test -n "$APK_PATH"
           ACTUAL_CERT_SHA256=$("$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$APK_PATH" | awk -F ': ' '/certificate SHA-256 digest/ {print tolower($2); exit}')
-          if [[ "$ACTUAL_CERT_SHA256" != "$EXPECTED_CERT_SHA256" ]]; then
-            echo "Unexpected debug signing certificate: $ACTUAL_CERT_SHA256" >&2
-            exit 1
-          fi
-          echo "Continuity debug signing certificate verified."
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256"
 
       - name: Upload Room schemas
         uses: actions/upload-artifact@v6
