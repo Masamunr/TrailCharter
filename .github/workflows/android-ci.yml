@@ -8,6 +8,7 @@ on:
       - 'app/**'
       - 'tools/maps/**'
       - 'tools/routing/**'
+      - 'tools/database/**'
       - 'gradle/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
@@ -20,6 +21,7 @@ on:
       - 'app/**'
       - 'tools/maps/**'
       - 'tools/routing/**'
+      - 'tools/database/**'
       - 'gradle/**'
       - 'build.gradle.kts'
       - 'settings.gradle.kts'
@@ -266,7 +268,9 @@ jobs:
           echo "TRAILCHARTER_CONTINUITY_SIGNING=true" >> "$GITHUB_ENV"
 
       - name: Unit tests, lint and debug build
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace --no-daemon
+        run: |
+          python3 -m unittest tools/database/test_migration_2_3.py
+          ./gradlew testDebugUnitTest lintDebug assembleDebug --stacktrace --no-daemon
 
       - name: Verify map and routing data are not embedded in spike APK
         if: github.event_name == 'pull_request' && github.head_ref == 'spike/map-routing-boundaries'
@@ -301,7 +305,7 @@ jobs:
 
           BADGING=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging "$APK_PATH")
           printf '%s\n' "$BADGING" | head -n 3
-          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='24'" <<< "$BADGING"
+          grep -q "package: name='com.masamunr.trailcharter.mapspike' versionCode='25'" <<< "$BADGING"
 
           PERMISSIONS=$("$ANDROID_HOME/build-tools/36.0.0/aapt2" dump permissions "$APK_PATH")
           printf '%s\n' "$PERMISSIONS"
@@ -387,3 +391,4 @@ jobs:
             app/build/outputs/logs/**
           if-no-files-found: ignore
           retention-days: 7
+
