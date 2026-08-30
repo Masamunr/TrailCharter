@@ -40,6 +40,16 @@ The route draft is deliberately in-memory in this spike. It does **not** alter p
 - TrailCharter must not silently move an unsnapped point or describe the user's deliberate selection as a mistake.
 - In this first spike, guided BRouter calculation is deliberately disabled while Snap is OFF because BRouter would otherwise be allowed to alter the effective route endpoints. Manual/direct routing will handle deliberate exact/off-network geometry in a later slice.
 
+## AGREE: map-first product home
+
+- The production TrailCharter app opens directly on the map.
+- The map is the primary home surface and default launch destination.
+- Adventures, planning, saved routes, map packages, settings and related functions are accessed from the map UI rather than through a mandatory landing menu/dashboard.
+- An active or recently opened Adventure may surface contextual information on the map without replacing the map as the home surface.
+- Dedicated planner/detail screens remain appropriate where needed, but the natural return destination is the map.
+- New-user/empty state remains map-first and may offer lightweight prompts such as `Plan an adventure` over the map.
+- The current `Stage route planning` shell is spike scaffolding only and is **not** the intended production home architecture.
+
 ## Routing boundary
 
 The planner must not couple itself directly to BRouter as a product architecture. BRouter remains an EXPLORE routing engine behind the existing routing boundary. This spike may invoke the BRouter implementation for physical evidence, but production planner state must remain engine-agnostic.
