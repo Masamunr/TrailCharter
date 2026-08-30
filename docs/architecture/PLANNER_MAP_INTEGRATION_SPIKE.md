@@ -50,15 +50,30 @@ Run #188 at head `a77e5bf39c9ab26fb8a9fcbfa6d487a78420adeb` passed the complete 
 
 The build intentionally reuses the accepted Run #180 `versionCode 24` build/workflow configuration. The code change is the planner ↔ map interaction spike; the offline map and BRouter package formats/data are unchanged. The same-signed APK is intended to replace the existing map-spike installation without clearing its app-private imported packages.
 
-## Physical acceptance focus
+## Run #188 physical result
 
-1. Open `Plan on map` from the stage-planning shell.
-2. Select Start and tap the map; confirm the marker appears where intended.
-3. Select Finish and tap the map; confirm the marker appears where intended.
-4. Add at least one Waypoint and confirm ordered waypoint count/marker behaviour.
-5. Turn Snap OFF and confirm the UI explicitly says exact coordinates are retained and guided calculation is disabled rather than silently snapping.
-6. Turn Snap ON and calculate a WALK route using installed BRouter data; inspect route geometry against mapped paths.
-7. Choose `Use stage route` and confirm the planner shell receives the selected route summary.
-8. Re-open `Edit route on map` and confirm the draft remains available during the current spike session.
+The first planner ↔ map interaction was physically tested and reported to work nicely. Treat the interaction slice as **PASS / accepted for progression to persistence design**, subject to the presentation refinement below.
 
-Only after this interaction is accepted should route persistence be added to the Adventure/Stage database schema.
+Accepted behaviour includes:
+
+- opening the map from the stage-planning shell;
+- selecting start, finish and waypoint positions directly on the map;
+- the explicit Snap on/off model;
+- guided WALK calculation when snapping is enabled;
+- returning the selected route draft to the stage-planning shell;
+- retaining the in-memory route draft for editing during the current spike session.
+
+### Duration presentation refinement
+
+The routing calculation is valid, but the current UI exposes longer estimates as total minutes (for example `106 min`). The product display should use human-readable hours and minutes without changing the underlying duration value:
+
+- under one hour: `42 min`;
+- exactly one hour: `1 hr`;
+- over one hour: `1 hr 46 min`;
+- longer routes continue naturally, for example `5 hr 12 min`.
+
+This is a presentation-only refinement and should be folded into the next planner/map slice rather than creating a standalone physical build.
+
+## Next slice
+
+With the interaction accepted, the next slice may design and implement persisted Stage route data. The persistence model must remain routing-engine agnostic and preserve the agreed snap semantics. Prototype-specific BRouter assumptions must not be embedded into the Adventure database schema.
