@@ -44,6 +44,12 @@ The route draft is deliberately in-memory in this spike. It does **not** alter p
 
 The planner must not couple itself directly to BRouter as a product architecture. BRouter remains an EXPLORE routing engine behind the existing routing boundary. This spike may invoke the BRouter implementation for physical evidence, but production planner state must remain engine-agnostic.
 
+## Run #188 CI evidence
+
+Run #188 at head `a77e5bf39c9ab26fb8a9fcbfa6d487a78420adeb` passed the complete Android CI gate: map package build/verification, BRouter package build/verification, unit tests, lint, debug APK assembly, no-embedded-map/routing checks, privacy permission checks and continuity signing.
+
+The build intentionally reuses the accepted Run #180 `versionCode 24` build/workflow configuration. The code change is the planner ↔ map interaction spike; the offline map and BRouter package formats/data are unchanged. The same-signed APK is intended to replace the existing map-spike installation without clearing its app-private imported packages.
+
 ## Physical acceptance focus
 
 1. Open `Plan on map` from the stage-planning shell.
