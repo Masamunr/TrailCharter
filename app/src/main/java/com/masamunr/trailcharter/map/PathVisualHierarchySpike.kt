@@ -16,6 +16,9 @@ internal const val PASS4_ESTABLISHED_ROUTE_LABEL_COLOR = "#5730A5"
 internal const val PASS4_TRAILCHARTER_ROUTE_COLOR = "#E53935"
 internal const val PASS4_LABEL_HALO_COLOR = "#F3EFE6"
 internal const val PASS4_ESTABLISHED_ROUTE_LAYER_ID = "hiking-route-relation-lines"
+internal const val PASS4_ORDINARY_TRACK_OPACITY = 0.82f
+internal const val PASS4_ORDINARY_PATH_OPACITY = 0.76f
+internal const val PASS4_ESTABLISHED_ROUTE_MIN_ZOOM = 11.5f
 
 /**
  * SPIKE ONLY visual hierarchy applied after the offline Pass 4 style is ready.
@@ -29,11 +32,11 @@ internal fun applyPass4PathVisualHierarchy(map: MapLibreMap) {
 
     style.getLayer("tracks")?.setProperties(
         lineColor(PASS4_ORDINARY_PATH_COLOR),
-        lineOpacity(0.72f),
+        lineOpacity(PASS4_ORDINARY_TRACK_OPACITY),
     )
     style.getLayer("paths")?.setProperties(
         lineColor(PASS4_ORDINARY_PATH_COLOR),
-        lineOpacity(0.64f),
+        lineOpacity(PASS4_ORDINARY_PATH_OPACITY),
     )
     style.getLayer("named-walking-path-labels")?.setProperties(
         textColor(PASS4_ORDINARY_PATH_LABEL_COLOR),
@@ -53,7 +56,7 @@ internal fun applyPass4PathVisualHierarchy(map: MapLibreMap) {
             lineDasharray(arrayOf(4.0f, 2.0f)),
             lineOpacity(0.92f),
         )
-        establishedRouteLayer.minZoom = 13.0f
+        establishedRouteLayer.minZoom = PASS4_ESTABLISHED_ROUTE_MIN_ZOOM
 
         if (style.getLayer("hiking-route-relation-labels") != null) {
             style.addLayerBelow(establishedRouteLayer, "hiking-route-relation-labels")
@@ -62,8 +65,11 @@ internal fun applyPass4PathVisualHierarchy(map: MapLibreMap) {
         }
     }
 
-    style.getLayer("hiking-route-relation-labels")?.setProperties(
-        textColor(PASS4_ESTABLISHED_ROUTE_LABEL_COLOR),
-        textHaloColor(PASS4_LABEL_HALO_COLOR),
-    )
+    style.getLayer("hiking-route-relation-labels")?.let { labelLayer ->
+        labelLayer.minZoom = PASS4_ESTABLISHED_ROUTE_MIN_ZOOM
+        labelLayer.setProperties(
+            textColor(PASS4_ESTABLISHED_ROUTE_LABEL_COLOR),
+            textHaloColor(PASS4_LABEL_HALO_COLOR),
+        )
+    }
 }
