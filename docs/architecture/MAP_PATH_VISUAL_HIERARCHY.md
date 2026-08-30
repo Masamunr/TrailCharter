@@ -43,12 +43,30 @@ The legend is a production UI requirement, not a reason to crowd the current tec
 
 ## VersionCode 23 physical test
 
-The APK-only physical pass applies the hierarchy after the existing Eryri East Pass 4 style has loaded. The map and BRouter packages do not change.
+The APK-only physical pass applied the hierarchy after the existing Eryri East Pass 4 style had loaded. The map and BRouter packages did not change.
+
+Physical result:
+
+1. recognised walking routes stood out clearly and the stronger purple treatment was accepted;
+2. recognised routes appeared too late while zooming in, so they need to remain visible from a further-out zoom level;
+3. ordinary paths/tracks were too faint, particularly beside recognised routes, and need a modest visibility increase;
+4. the hierarchy itself remains accepted: ordinary path < recognised route < TrailCharter-created route;
+5. isolated/short paths remain present and are not filtered merely for looking disconnected.
+
+## VersionCode 24 physical tuning
+
+The next APK-only pass keeps the agreed colour family and adjusts prominence only:
+
+- recognised hiking-route relation lines and labels begin at `z11.5` instead of `z13`;
+- ordinary tracks use opacity `0.82`;
+- ordinary paths use opacity `0.76`;
+- recognised-route colour, weight, dash treatment and TrailCharter bright-red route treatment remain unchanged;
+- no map-package, BRouter-package, routing-logic, privacy or source-path filtering changes are included.
 
 Acceptance focus:
 
-1. ordinary paths remain readily traceable but no longer dominate the topo map;
-2. recognised routes such as Watkin Path visibly stand out from ordinary paths while remaining part of the same colour family;
-3. isolated/short ordinary path geometry remains present rather than being silently suppressed;
-4. relation labels remain readable and visually associated with the recognised route line;
+1. recognised routes remain useful and readable at a wider planning overview without cluttering the map;
+2. ordinary paths are clearly traceable beside recognised routes but remain visually subordinate;
+3. the same violet family still reads as one coherent mapped-path system;
+4. relation labels do not become excessively crowded at the earlier zoom threshold;
 5. existing route-opacity, z18 inspection and routing-safety behaviour remain unchanged.
