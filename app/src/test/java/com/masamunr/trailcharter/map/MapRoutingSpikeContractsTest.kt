@@ -32,6 +32,15 @@ class MapRoutingSpikeContractsTest {
     }
 
     @Test
+    fun physicalFeedbackMakesRoutesVisibleEarlierAndOrdinaryPathsClearer() {
+        assertEquals(0.82f, PASS4_ORDINARY_TRACK_OPACITY)
+        assertEquals(0.76f, PASS4_ORDINARY_PATH_OPACITY)
+        assertEquals(11.5f, PASS4_ESTABLISHED_ROUTE_MIN_ZOOM)
+        assertTrue(PASS4_ORDINARY_TRACK_OPACITY > PASS4_ORDINARY_PATH_OPACITY)
+        assertTrue(PASS4_ESTABLISHED_ROUTE_MIN_ZOOM < 13.0f)
+    }
+
+    @Test
     fun bothPhysicalRoutingScenariosRemainExposed() {
         assertEquals(
             listOf("Run Yr Wyddfa WALK test", "Run Moel Siabod WALK test"),
