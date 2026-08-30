@@ -48,25 +48,19 @@ The APK-only physical pass applied the hierarchy after the existing Eryri East P
 Physical result:
 
 1. recognised walking routes stood out clearly and the stronger purple treatment was accepted;
-2. recognised routes appeared too late while zooming in, so they need to remain visible from a further-out zoom level;
-3. ordinary paths/tracks were too faint, particularly beside recognised routes, and need a modest visibility increase;
-4. the hierarchy itself remains accepted: ordinary path < recognised route < TrailCharter-created route;
-5. isolated/short paths remain present and are not filtered merely for looking disconnected.
+2. recognised routes appeared too late while zooming in, so they needed to remain visible from a further-out zoom level;
+3. ordinary paths/tracks were too faint, particularly beside recognised routes, and needed a modest visibility increase;
+4. the hierarchy itself remained accepted: ordinary path < recognised route < TrailCharter-created route;
+5. isolated/short paths remained present and were not filtered merely for looking disconnected.
 
-## VersionCode 24 physical tuning
+## VersionCode 24 / Run #180 physical tuning
 
-The next APK-only pass keeps the agreed colour family and adjusts prominence only:
+The APK-only tuning kept the agreed colour family and adjusted prominence only:
 
-- recognised hiking-route relation lines and labels begin at `z11.5` instead of `z13`;
+- recognised hiking-route relation lines begin at `z11.5` instead of `z13`;
 - ordinary tracks use opacity `0.82`;
 - ordinary paths use opacity `0.76`;
 - recognised-route colour, weight, dash treatment and TrailCharter bright-red route treatment remain unchanged;
-- no map-package, BRouter-package, routing-logic, privacy or source-path filtering changes are included.
+- no map-package, BRouter-package, routing-logic, privacy or source-path filtering changes were included.
 
-Acceptance focus:
-
-1. recognised routes remain useful and readable at a wider planning overview without cluttering the map;
-2. ordinary paths are clearly traceable beside recognised routes but remain visually subordinate;
-3. the same violet family still reads as one coherent mapped-path system;
-4. relation labels do not become excessively crowded at the earlier zoom threshold;
-5. existing route-opacity, z18 inspection and routing-safety behaviour remain unchanged.
+**Physical result: PASS.** The user confirmed the tuned result looks good. Treat Run #180 / map-spike versionCode 24 as the accepted path-visual-hierarchy baseline for the next planner ↔ map integration work.
